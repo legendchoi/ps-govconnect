@@ -1,0 +1,14 @@
+Account-Creation.ps1	      Non-ITClient.ps1
+Check-DeviceRegistration.ps1  o365_project
+Citrix-Access.ps1	      Old
+Copy-ADUserGroup2.3.ps1       Password-Reset.ps1
+Distribution-List.ps1	      SDS
+Files			      SDS.bat
+Get-ADManager.ps1	      Search-MapDrivePolicy.ps1
+Get-FolderAccess.ps1	      SharedEmail.ps1
+Get-GPPDriveMaps.ps1	      SharedEmail-copy.ps1
+Includes		      Terminator.ps1
+list-sharedMail-Users.ps1     test1.txt
+Manual-Mapping.ps1	      test2.txt
+New\ folder		      test3.txt
+New-ADUser1.1.ps1
