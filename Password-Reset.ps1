@@ -10,6 +10,8 @@ Write-Host "-----------------------" -ForegroundColor Magenta
 Write-Host "| User Account Status |" -ForegroundColor Magenta
 Write-Host "-----------------------" -ForegroundColor Magenta
 Get-ADUserAccountStatus -Identity $User
+$PrimaryComps = Get-CMPrimaryDevice -Identity $User
+Write-Host "Primary Comp`t: $PrimaryComps"
 
 Write-Host "-------------------" -ForegroundColor Magenta
 Write-Host "| Password Status |" -ForegroundColor Magenta
@@ -53,3 +55,10 @@ if ($ConfirmPasswordReset -ieq 'y') {
 } else {
     Write-Host "Skip"
 }
+
+# Primary Device
+# Network Drive
+# Manager
+# Group
+# Citrix
+# 

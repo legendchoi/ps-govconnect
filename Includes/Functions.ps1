@@ -974,3 +974,21 @@ function Get-Phonetic {
         # "`n{0}`n{1}" -f ($Result | Format-Table -AutoSize | Out-String)
     }
 }
+
+################################################################################################
+
+function Get-CMPrimaryDevice {
+    param($Identity)
+
+    $CurrentLocation = Get-Location
+    # Import the ConfigurationManager.psd1 module 
+    Import-Module "$($ENV:SMS_ADMIN_UI_PATH)\..\ConfigurationManager.psd1"
+    # Set the current location to be the site code.
+
+    Set-Location "P01:"
+    $computers = (Get-CMUserDeviceAffinity -UserName "govnet\$identity").ResourceName
+    # Write-Host $CurrentLocation
+    Set-Location $CurrentLocation
+
+    return $computers
+}

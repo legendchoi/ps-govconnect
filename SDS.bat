@@ -93,7 +93,7 @@ ECHO.
 ECHO        PLEASE MAKE A CHOICE
 ECHO.
 ECHO.
-ECHO		(1).   Account Status
+ECHO		(1).   Account Health Check
 echo.
 ECHO		(2).   Account Creation
 echo.
@@ -113,9 +113,11 @@ ECHO		(9).   DL Access
 echo.
 ECHO		(10).  User Info
 echo.
-echo		(11).  Mapping Drive
+echo		(11).  Mapping Drive (BETA)
 echo.
 echo		(12).  Shared Mailbox - User List
+echo.
+echo		(13).  Application Deployment (BETA)
 echo.
 ECHO		(0).   EXIT
 ECHO.
@@ -123,6 +125,7 @@ ECHO.
 SET /P M=Type the number then press ENTER: 
 ECHO.
 IF %M% ==0  GOTO GETOUT
+IF %M% ==13 GOTO APPDEPLOY
 IF %M% ==12 GOTO SMUL
 IF %M% ==11 GOTO MMAP
 IF %M% ==10 GOTO CHKMNG
@@ -140,6 +143,10 @@ GOTO END
 :GETOUT
 rem EXIT
 GOTO QUIT
+
+:APPDEPLOY
+powershell.exe -File H:\Scripts\App-Deployment.ps1
+GOTO END
 
 :SMUL
 powershell.exe -File H:\Scripts\list-sharedMail-Users.ps1

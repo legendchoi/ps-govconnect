@@ -98,6 +98,7 @@ function Select-RootServer {
     [void] $objListBox.Items.Add("\\Vfilertsy")
     [void] $objListBox.Items.Add("\\VFILERDFS-SF")
     [void] $objListBox.Items.Add("\\NEWCWFS01")
+    [void] $objListBox.Items.Add("\\vfiler01")
     # [void] $objListBox.Items.Add("\\VFILERDFS-SF")
     # [void] $objListBox.Items.Add("atl-dc-003")
     # [void] $objListBox.Items.Add("atl-dc-004")
@@ -219,6 +220,7 @@ do {
 }while($repeat)
 #>
 
+
 do {
     $repeat=$false
     # $TargetPath = (Read-Host "Path in UNC format (eg. \\server\path\to\folder)").Trim()
@@ -241,7 +243,7 @@ do {
 }while($repeat)
 
 
-
+# $ConfirmPath = Read-Host ""
 
 
 $SecGroups = (Get-Acl "FileSystem::$TargetPath").Access | ? {$_.IdentityReference -notmatch "NT AUTHORITY|BUILTIN|Systems Admins|Systems ContactCentre|^S-1-|_svc"} | sort FileSystemRights
