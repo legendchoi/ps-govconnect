@@ -1,10 +1,8 @@
 ﻿function Get-ExtNumber {
     # param([string]$Identity)
-
-    # $Identity = $env:USERNAME
-    # $DisplayName = (Get-ADUser $Identity -Properties DisplayName).DisplayName
-    $DisplayName = (Get-ADUser ($env:USERNAME) -Properties DisplayName).DisplayName
-    # $DisplayName
+    # $DisplayName = (Get-ADUser ($env:USERNAME) -Properties DisplayName).DisplayName
+    $UserName = $env:USERNAME
+    <#
     $ExtTable = @{
         "Hacene Amrani"      = "7843050";
         "Naphez Chahal"      = "7843022";
@@ -18,6 +16,19 @@
         "Mohsin Zaheer"      = "7843034";
         "Bo Zhang"           = "7843031"
     }
-    # $ExtTable[$DisplayName]
-    return $ExtTable[$DisplayName].Substring(3,4)
+    #>
+    $ExtTable = @{
+        "AMRANIH"      = "7843050";
+        "CHAHALN"      = "7843022";
+        "choih"          = "7843023";
+        "HOSSENZ"       = "7843041";
+        "MACLEODJ"    = "7843024";
+        "MAMUNM" = "7843026";
+        "PURIL"          = "7843017";
+        "Saadm"      = "7843057";
+        "ZAHEERM"      = "7843034";
+        "ZHANGB"           = "7843031"
+    }
+    
+    return $ExtTable[$UserName].Substring(3,4)
 }

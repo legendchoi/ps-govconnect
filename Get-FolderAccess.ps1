@@ -58,7 +58,7 @@ function Select-RootServer {
 
     $objForm = New-Object System.Windows.Forms.Form 
     $objForm.Text = "Select a Computer"
-    $objForm.Size = New-Object System.Drawing.Size(300,200) 
+    $objForm.Size = New-Object System.Drawing.Size(300,300) 
     $objForm.StartPosition = "CenterScreen"
 
 
@@ -69,14 +69,14 @@ function Select-RootServer {
         {$objForm.Close()}})
 
     $OKButton = New-Object System.Windows.Forms.Button
-    $OKButton.Location = New-Object System.Drawing.Size(75,120)
+    $OKButton.Location = New-Object System.Drawing.Size(75,220)
     $OKButton.Size = New-Object System.Drawing.Size(75,23)
     $OKButton.Text = "OK"
     $OKButton.Add_Click({$x=$objListBox.SelectedItem;$objForm.Close()})
     $objForm.Controls.Add($OKButton)
 
     $CancelButton = New-Object System.Windows.Forms.Button
-    $CancelButton.Location = New-Object System.Drawing.Size(150,120)
+    $CancelButton.Location = New-Object System.Drawing.Size(150,220)
     $CancelButton.Size = New-Object System.Drawing.Size(75,23)
     $CancelButton.Text = "Cancel"
     $CancelButton.Add_Click({$objForm.Close()})
@@ -91,7 +91,7 @@ function Select-RootServer {
     $objListBox = New-Object System.Windows.Forms.ListBox 
     $objListBox.Location = New-Object System.Drawing.Size(10,40) 
     $objListBox.Size = New-Object System.Drawing.Size(260,20) 
-    $objListBox.Height = 80
+    $objListBox.Height = 180
 
     [void] $objListBox.Items.Add("\\vfilerdfs")
     [void] $objListBox.Items.Add("\\Vfilerdpc")
@@ -99,6 +99,11 @@ function Select-RootServer {
     [void] $objListBox.Items.Add("\\VFILERDFS-SF")
     [void] $objListBox.Items.Add("\\NEWCWFS01")
     [void] $objListBox.Items.Add("\\vfiler01")
+    [void] $objListBox.Items.Add("\\dc1wpmfs001")
+    [void] $objListBox.Items.Add("\\DC1WMRIAPP45")
+    [void] $objListBox.Items.Add("\\DC1WLANDSP")
+    # [void] $objListBox.Items.Add("\\vfiler01")
+    # [void] $objListBox.Items.Add("\\vfiler01")
     # [void] $objListBox.Items.Add("\\VFILERDFS-SF")
     # [void] $objListBox.Items.Add("atl-dc-003")
     # [void] $objListBox.Items.Add("atl-dc-004")
