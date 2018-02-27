@@ -204,7 +204,7 @@ foreach ($Computer in $computers) {
 
 Write-Host "`nPlease provide the full path of the shared folder which you'd like to get the user an access."
 
-<#
+
 do {
     $repeat=$false
     $TargetPath = (Read-Host "Path in UNC format (eg. \\server\path\to\folder)").Trim()
@@ -223,9 +223,9 @@ do {
         }
     }
 }while($repeat)
-#>
 
 
+<#
 do {
     $repeat=$false
     # $TargetPath = (Read-Host "Path in UNC format (eg. \\server\path\to\folder)").Trim()
@@ -246,7 +246,7 @@ do {
         }
     }
 }while($repeat)
-
+#>
 
 # $ConfirmPath = Read-Host ""
 

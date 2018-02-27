@@ -7,6 +7,7 @@ Please change -Identity parmameter as to what you desire to search
 Write-Host "Connecting Exchange Server ... Please wait ..." -ForegroundColor Yellow
 Get-ConnectExch
 
+<#
 function Select-Mailbox {
     param ($EmailBoxName, $OperationChoice)
 
@@ -134,6 +135,8 @@ function Select-Mailbox {
     
     return $EmailBoxAddress
 }
+
+#>
 
 Clear-Host
 $sharedmailbox = Select-Mailbox -OperationChoice 2

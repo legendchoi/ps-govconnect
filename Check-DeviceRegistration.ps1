@@ -1,5 +1,4 @@
-﻿# v1.3
-
+﻿
 [CmdletBinding()]
 param ([string]$Identity)
 ."$PSScriptRoot\includes\functions.ps1"

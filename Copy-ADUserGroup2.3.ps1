@@ -122,8 +122,8 @@ function Show-Greeting {
 
 ## Main process block 
 
-# Filter out the security groups containing the keywords blow 
-$Filter = "CTX|XenAPP|Administrator|Cisco|UAT Users|UAT - Users|OBJECTIVE USERS A|RDP|APP MS Office 2016 x86 ProPlus|APP MS Office 365|O365Licensing|lync|Office 356 Test Users"
+# Filter out the security groups containing the keywords below 
+$Filter = "CTX|XenAPP|Administrator|Cisco|UAT Users|UAT - Users|OBJECTIVE USERS A|RDP|APP MS Office 2016 x86 ProPlus|APP MS Office 365|O365Licensing|lync|Office 356 Test Users|Computer Admins"
 
 do {
     Clear-Host

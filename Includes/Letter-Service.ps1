@@ -66,7 +66,7 @@ Function Write-NAPCLetter {
     $Header = "Dear [Customer] ,"
 
     $Body  =  "`r`n`r`nThank you for contacting GovConnect Service Desk."
-    $Body  += "`r`n`r`nPlease be advised that requested additional group(s) have been added to $TargetUserName to allow access to/same as $RefUserName."
+    $Body  += "`r`n`r`nPlease be advised that requested additional group(s) have been added to $TargetUserName's account to allow access to/same as $RefUserName."
     $Body  += "`r`n`r`nPlease restart the computer first to allow changes to take effect."
     # $Footer = "`r`nRegards,`r`nGovConnect Service Desk`nPhone: 1800 217 640`r`nPortal: https://portal.govconnect.nsw.gov.au"
     $Footer = "`r`n`r`nKind Regards,`r`n`r`n$AgentDisplayName`r`nGovConnect Service Desk`r`nPhone: 1800 217 640`r`nDirect: 1300 666 277 ext#$AgentExtNumber (To be used in regards to the above Incident/Request only)`r`nPortal: https://portal.govconnect.nsw.gov.au"
