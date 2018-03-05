@@ -30,6 +30,20 @@ Function Connect-Exch {
 
 # Get-ConnectExch
 
+Function Connect-Office365 {
+    # $LiveCred = Get-Credential
+    Write-Host "Connecting O365 Exchange Server... `nPlease wait..." -ForegroundColor DarkBlue
+    $UserName = (Get-ADUser ($Env:USERNAME)).UserPrincipalName
+    $Password = ConvertTo-SecureString $myPW -AsPlainText -Force
+    $cred= New-Object System.Management.Automation.PSCredential ($UserName, $Password )
+    $O365Session = New-PSSession -ConfigurationName Microsoft.Exchange -ConnectionUri https://ps.outlook.com/powershell -Credential $cred -Authentication Basic -AllowRedirection -WarningAction SilentlyContinue
+    Import-PSSession $O365Session -allowclobber -Prefix O365 -WarningAction SilentlyContinue | Out-Null
+    Import-Module MSonline
+    Connect-MsolService -Credential $Cred -WarningAction SilentlyContinue
+}
+
+# $myPW
+
 #-LDAP Connection: Entry-------------------------------------------------------------------------
 function Get-LDAPConnectionEntry {
     param (
@@ -414,7 +428,7 @@ function inputbox_user{
     $Form = New-Object System.Windows.Forms.Form
     $Form.width = 300
     $Form.height = 200
-    $Form.Text = ”User Details”
+    $Form.Text = ï¿½User Detailsï¿½
     # $Font = New-Object System.Drawing.Font("Times New Roman",12)
     # $Form.Font = $Font
     $Form.StartPosition = "CenterScreen"

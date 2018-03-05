@@ -119,12 +119,15 @@ echo		(12).  Shared Mailbox - User List
 echo.
 echo		(13).  Application Deployment (BETA)
 echo.
+echo		(14).  Office 365 Mailbox Creation
+echo.
 ECHO		(0).   EXIT
 ECHO.
 ECHO.
 SET /P M=Type the number then press ENTER: 
 ECHO.
 IF %M% ==0  GOTO GETOUT
+IF %M% ==14 GOTO O365MAIL
 IF %M% ==13 GOTO APPDEPLOY
 IF %M% ==12 GOTO SMUL
 IF %M% ==11 GOTO MMAP
@@ -143,6 +146,10 @@ GOTO END
 :GETOUT
 rem EXIT
 GOTO QUIT
+
+:O365MAIL
+PowerShell -NoProfile -ExecutionPolicy Bypass -Command "& 'D:\SD_Tools_Office365\scripts\Mailbox_Enablement_Console.ps1'"
+GOTO END
 
 :APPDEPLOY
 powershell.exe -File H:\Scripts\App-Deployment.ps1

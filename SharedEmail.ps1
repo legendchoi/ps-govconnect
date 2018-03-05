@@ -31,6 +31,21 @@ function Set-FullAccess {
     return $Granted
 }
 
+function Set-O365FullAccess {
+    param ($EmailboxName, $UserName)
+    $Granted = $true
+    Write-Host -NoNewline "Adding Full access: " -ForegroundColor DarkCyan
+    try { 
+        Add-O365MailboxPermission $EmailBoxName -User $UserName -AccessRights FullAccess -InheritanceType All -ErrorAction Stop -WarningAction Stop | Out-Null
+        Write-Host "Full Access granted" -ForegroundColor Green
+    } catch {
+        Write-Host "Full Access grant failed" -ForegroundColor Red
+        $Granted = $false
+    }
+    return $Granted
+}
+
+
 function Remove-FullAccess {
     param ($EmailboxName, $UserName)
     $Granted = $true
@@ -45,6 +60,25 @@ function Remove-FullAccess {
     }
     return $Granted
 }
+
+
+function Remove-O365FullAccess {
+    param ($EmailboxName, $UserName)
+    $Granted = $true
+    Write-Host -NoNewline "Removing Full access: " -ForegroundColor DarkCyan
+    try { 
+        Remove-O365MailboxPermission $EmailBoxName -User $UserName -AccessRights FullAccess -InheritanceType All  -Confirm:$false -ErrorAction Stop -WarningAction Stop | Out-Null
+        Write-host "Full Access removed" -ForegroundColor Green
+    } catch {
+        Write-Host "Full Access removal failed" -ForegroundColor Red
+        # Write-Warning $_
+        $Granted = $false 
+    }
+    return $Granted
+}
+
+# Add-O365MailboxPermission "FMTraining" -User BURDANN -AccessRights FullAccess -InheritanceType All -Confirm:$false
+
 
 function Set-SendAsAccess {
     param ($EmailboxName, $UserName)
@@ -63,12 +97,31 @@ function Set-SendAsAccess {
     return $Granted
 }
 
-function Remove-SendAsAccess {
+function Set-O365SendAsAccess {
+    param ($EmailboxName, $UserName)
+    $Granted = $true
+    Write-Host -NoNewline "Adding Send As access: " -ForegroundColor DarkCyan
+    try { 
+        
+        # Get-Mailbox $EmailboxName | Add-ADPermission -User $UserName -ExtendedRights "Send As" -ErrorAction Stop -WarningAction Stop
+        Add-O365RecipientPermission $EmailboxName -AccessRights SendAs -Trustee $UserName -Confirm:$false -ErrorAction Stop -WarningAction Stop
+        Write-Host "Send As granted" -ForegroundColor Green
+    } catch { 
+        $Granted = $false
+        Write-Host "Send As grant failed" -ForegroundColor Red
+        # Write-Error $_
+        Write-Warning $_
+    }
+    return $Granted
+}
+
+function Remove-O365SendAsAccess {
     param ($EmailboxName, $UserName)
     $Granted = $true
     Write-Host -NoNewline "Removing Send As access: " -ForegroundColor DarkCyan
     try { 
-        Get-Mailbox $EmailBoxName | Remove-ADPermission -User $UserName -ExtendedRights "Send As" -ErrorAction Stop -WarningAction Stop -Confirm:$false
+        # Get-Mailbox $EmailBoxName | Remove-ADPermission -User $UserName -ExtendedRights "Send As" -ErrorAction Stop -WarningAction Stop -Confirm:$false
+        Remove-O365RecipientPermission $EmailBoxName -AccessRights SendAs -Trustee $UserName -Confirm:$false -ErrorAction Stop -WarningAction Stop
         Write-Host "Send As removed" -ForegroundColor Green
     } catch { 
         Write-Host "Send As removal failed" -ForegroundColor Red
@@ -146,14 +199,25 @@ function Select-Mailbox {
             }
 
             Write-Host "Searching the mailbox..." -ForegroundColor DarkGreen
+
+            # $OperationChoice = 1
+            <#
             try {
                 if ($OperationChoice -eq 1) {
-                    $MailBoxList = Get-Mailbox "*$EmailBoxName*" -RecipientTypeDetails UserMailbox -ErrorAction Stop
+                    $MailBoxList = @()
+                    Write-Host "hey1"
+                    $MailBoxList += Get-Mailbox "*$EmailBoxName*" -RecipientTypeDetails UserMailbox -ErrorAction Stop
+                    Write-Host "hey2"
+                    $MailBoxList += Get-O365Mailbox "*$EmailBoxName*" -RecipientTypeDetails UserMailbox -ErrorAction Stop
                 } else {
                     if ($EmailBoxName -match "@") {
+                        Write-Host "hey3"
                         $MailBoxList = Get-Mailbox $EmailBoxName -RecipientTypeDetails SharedMailbox -ErrorAction Stop
+                        $MailBoxList = Get-O365Mailbox $EmailBoxName -RecipientTypeDetails SharedMailbox -ErrorAction Stop
                     } else {
+                        Write-Host "hey4"
                         $MailBoxList = Get-Mailbox -Filter "(Name -like '*$EmailBoxName*') -or (Alias -like '*$EmailBoxName*') -or (EmailAddresses -like '*$EmailBoxName*')" -RecipientTypeDetails SharedMailbox -ErrorAction Stop
+                        $MailBoxList = Get-O365Mailbox -Filter "(Name -like '*$EmailBoxName*') -or (Alias -like '*$EmailBoxName*') -or (EmailAddresses -like '*$EmailBoxName*')" -RecipientTypeDetails SharedMailbox -ErrorAction Stop
                     }
                 }
                 $IsEmailBoxExist = $true
@@ -161,6 +225,66 @@ function Select-Mailbox {
                 Write-Host -NoNewline "No match found! " -ForegroundColor Red
                 $IsEmailBoxExist = $false
             }
+            #>
+
+
+            # New Search Process - now search On-Premises exch & O365 mailbox
+            $MailBoxList = @()
+            if ($OperationChoice -eq 1) {
+                # $MailBoxList = @()
+                
+                try {
+                    $MailBoxList += Get-Mailbox "*$EmailBoxName*" -RecipientTypeDetails UserMailbox -ErrorAction Stop
+                } catch {
+                    # just null
+                }
+                try {
+                    $MailBoxList += Get-O365Mailbox "*$EmailBoxName*" -RecipientTypeDetails UserMailbox -ErrorAction Stop
+                } catch {
+                    # just null
+                }
+            } else {
+                # $MailBoxList = @()
+
+                if ($EmailBoxName -match "@") {
+                    try {
+                        $MailBoxList += Get-Mailbox $EmailBoxName -RecipientTypeDetails SharedMailbox -ErrorAction Stop
+                    } catch {
+                        # Just Null
+                        Write-Host "Test1"
+                    }
+                    try {
+                        $MailBoxList += Get-O365Mailbox $EmailBoxName -RecipientTypeDetails SharedMailbox -ErrorAction Stop
+                    } catch {
+                        # just null
+                        Write-Host "Test2"
+                    }
+                } else {
+                    Write-Host "No @"
+                    try {
+                        $MailBoxList += Get-Mailbox -Filter "(DisplayName -like '*$EmailBoxName*') -or (Name -like '*$EmailBoxName*') -or (Alias -like '*$EmailBoxName*') -or (EmailAddresses -like '*$EmailBoxName*')" -RecipientTypeDetails SharedMailbox -ErrorAction Stop
+                    } catch {
+                        # Just Null
+                        Write-Host "Test3"
+                    }
+                    try {
+                        $MailBoxList += Get-O365Mailbox -Filter "(DisplayName -like '*$EmailBoxName*') -or (Name -like '*$EmailBoxName*') -or (Alias -like '*$EmailBoxName*') -or (EmailAddresses -like '*$EmailBoxName*')" -RecipientTypeDetails SharedMailbox -ErrorAction Stop
+                    } catch {
+                        # just null
+                        Write-Host "Test4"
+                    }
+                }
+            }
+            
+
+            # this if-Statement block may not be necessary - Duplicated with the next If-Statement
+            if ($MailBoxList) {
+                $IsEmailBoxExist = $true
+            } else {
+                Write-Host -NoNewline "No match found! " -ForegroundColor Red
+                $IsEmailBoxExist = $false
+            }
+
 
             if ($MailBoxList) {
                 if ($MailBoxList.count -gt 1) {
@@ -170,10 +294,10 @@ function Select-Mailbox {
                     $Number = 1
                     $List = @()
                     foreach ($Mailbox in $MailBoxList) {
-                        $List += New-Object psObject -Property @{'Number'=$Number; 'Name'= $Mailbox.Name;'Alias'=$Mailbox.alias;'DisplayName'=$Mailbox.DisplayName;'PrimarySmtpAddress' = $Mailbox.PrimarySmtpAddress }
+                        $List += New-Object psObject -Property @{'Number'=$Number; 'Name'= $Mailbox.Name;'Alias'=$Mailbox.alias;'DisplayName'=$Mailbox.DisplayName;'PrimarySmtpAddress' = $Mailbox.PrimarySmtpAddress; 'ServerName'=$Mailbox.ServerName}
                         $Number ++
                     } 
-                    $List | Format-Table Number, Name, PrimarySmtpAddress, Alias, DisplayName -AutoSize | Out-Host
+                    $List | Format-Table Number, Name, PrimarySmtpAddress, Alias, DisplayName, ServerName -AutoSize | Out-Host
 
                     # Input Validator
                     do {
@@ -234,7 +358,7 @@ function Select-Mailbox {
                     $EmailBoxName = $MailBoxList[0]
                     $EmailBoxAddress = $MailBoxList[0].PrimarySmtpAddress
                     $EmailBoxAlias = $MailBoxList[0].Alias
-                    Get-Mailbox "$EmailBoxAddress" -ErrorAction Stop | Select-Object Name,Alias,DisplayName,PrimarySmtpAddress | Format-Table -AutoSize | Out-Host
+                    Get-Mailbox "$EmailBoxAddress" -ErrorAction Stop | Select-Object Name,Alias,DisplayName,PrimarySmtpAddress,ServerName | Format-Table -AutoSize | Out-Host
                 }
             } 
             else {
@@ -498,6 +622,7 @@ function Show-MenuSub {
 # Main
 
 Connect-Exch
+Connect-Office365
 
 do {
     Clear-Host

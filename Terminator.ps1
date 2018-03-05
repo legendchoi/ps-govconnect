@@ -5,15 +5,16 @@
 function Remove-AllGroups {
     param($Identity,$TicketNumber)
 
-    $Groups = Get-ADPrincipalGroupMembership $Identity
+    # $Groups = Get-ADPrincipalGroupMembership $Identity
+    $Groups = (Get-ADUser $Identity -Properties memberof).memberof | % {([regex]::split($_,'^CN=|,.+$'))[1]}
 
     foreach ($Group in $Groups) {
         if($Group.Name -ne "Domain Users") {
             Get-ADGroup $Group | Remove-ADGroupMember -Members $Identity -Confirm:$false
-            Write-Host "Removed" $Identity "from" $Group.Name; 
+            Write-Host "Removed" $Identity "from" $Group; 
         }
     }
-    $Comment = $Groups.name | % {"`r`n$_"}
+    $Comment = $Groups | % {"`r`n$_"}
     Write-Note -Identity $Identity -Option 5 -Comment $Comment -ConfirmNote "y" -TicketNumber $TicketNumber
     Write-Host "Done" -ForegroundColor Green
 }
