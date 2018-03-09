@@ -34,6 +34,7 @@ function Set-FullAccess {
 function Set-O365FullAccess {
     param ($EmailboxName, $UserName)
     $Granted = $true
+    $UserName = (Get-ADUser $UserName).UserPrincipalName
     Write-Host -NoNewline "Adding Full access: " -ForegroundColor DarkCyan
     try { 
         Add-O365MailboxPermission $EmailBoxName -User $UserName -AccessRights FullAccess -InheritanceType All -ErrorAction Stop -WarningAction Stop | Out-Null
@@ -65,6 +66,7 @@ function Remove-FullAccess {
 function Remove-O365FullAccess {
     param ($EmailboxName, $UserName)
     $Granted = $true
+    $UserName = (Get-ADUser $UserName).UserPrincipalName
     Write-Host -NoNewline "Removing Full access: " -ForegroundColor DarkCyan
     try { 
         Remove-O365MailboxPermission $EmailBoxName -User $UserName -AccessRights FullAccess -InheritanceType All  -Confirm:$false -ErrorAction Stop -WarningAction Stop | Out-Null
@@ -100,9 +102,9 @@ function Set-SendAsAccess {
 function Set-O365SendAsAccess {
     param ($EmailboxName, $UserName)
     $Granted = $true
+    $UserName = (Get-ADUser $UserName).UserPrincipalName
     Write-Host -NoNewline "Adding Send As access: " -ForegroundColor DarkCyan
-    try { 
-        
+    try {
         # Get-Mailbox $EmailboxName | Add-ADPermission -User $UserName -ExtendedRights "Send As" -ErrorAction Stop -WarningAction Stop
         Add-O365RecipientPermission $EmailboxName -AccessRights SendAs -Trustee $UserName -Confirm:$false -ErrorAction Stop -WarningAction Stop
         Write-Host "Send As granted" -ForegroundColor Green
@@ -118,6 +120,7 @@ function Set-O365SendAsAccess {
 function Remove-O365SendAsAccess {
     param ($EmailboxName, $UserName)
     $Granted = $true
+    $UserName = (Get-ADUser $UserName).UserPrincipalName
     Write-Host -NoNewline "Removing Send As access: " -ForegroundColor DarkCyan
     try { 
         # Get-Mailbox $EmailBoxName | Remove-ADPermission -User $UserName -ExtendedRights "Send As" -ErrorAction Stop -WarningAction Stop -Confirm:$false
@@ -147,6 +150,25 @@ function Set-SendOnBehalfAccess {
     return $Granted
 }
 
+function Set-O365SendOnBehalfAccess {
+    param ($EmailBoxName, $UserName)
+    $Granted = $true
+    $UserName = (Get-ADUser $UserName).UserPrincipalName
+    $EmailAddress = Get-O365Mailbox $UserName | Select-Object -ExpandProperty PrimarySmtpAddress
+    Write-Host -NoNewline "Adding SendOn Behalf Access: " -ForegroundColor DarkCyan
+    try { 
+        # Add-ADPermission -Identity $EmailBoxName -User $UserName -ExtendedRights "Send As" -ErrorAction Stop -WarningAction Stop
+        # Set-O365Mailbox -Identity $EmailBoxName -GrantSendOnBehalfTo @{add="$EmailAddress"} -ErrorAction Stop -WarningAction Stop
+        Set-O365Mailbox -Identity $EmailBoxName -GrantSendOnBehalfTo $UserName -ErrorAction Stop -WarningAction Stop
+        Write-Host "Send On Behalf granted" -ForegroundColor Green
+    } catch { 
+        $Granted = $false
+        Write-Host "Send On Behalf grant failed. Maybe the user already has granted the 'on behalf' access previously" -ForegroundColor Red
+        # Write-Warning $_
+    }
+    return $Granted
+}
+
 function Remove-SendOnBehalfAccess {
     param ($EmailBoxName, $UserName)
     $Granted = $true
@@ -164,10 +186,28 @@ function Remove-SendOnBehalfAccess {
     return $Granted
 }
 
+function Remove-O365SendOnBehalfAccess {
+    param ($EmailBoxName, $UserName)
+    $Granted = $true
+    $UserName = (Get-ADUser $UserName).UserPrincipalName
+    $EmailAddress = Get-O365Mailbox $UserName | Select-Object -ExpandProperty PrimarySmtpAddress
+    Write-Host -NoNewline "Removing Send On Behalf Access: "
+    try { 
+        # Add-ADPermission -Identity $EmailBoxName -User $UserName -ExtendedRights "Send As" -ErrorAction Stop -WarningAction Stop
+        Set-O365Mailbox -Identity $EmailBoxName -GrantSendOnBehalfTo @{remove="$EmailAddress"} -WarningAction Stop -ErrorAction Stop
+        Write-Host "Send On Behalf removed" -ForegroundColor Green 
+    } catch { 
+        Write-Host "Send On Behalf removal failed" -ForegroundColor Red
+        # Write-Warning $_
+        $Granted = $false
+    }
+    return $Granted
+}
 function Write-Note {
     param ($Identity,$Access,$EmailBoxName)
 
     # $ConfirmNote = Read-Host "Write a note? (y/n)"
+    # Write-Host "Test1: $Identity"
     $ConfirmNote = 'y'
     if ($ConfirmNote -ieq "y") {
         $TicketNumber = Read-Host "Ticket Number please"
@@ -175,7 +215,7 @@ function Write-Note {
         $Note = "Mailbox Access modified - $Access for $EmailBoxName : $TicketNumber / $Today"
         Write-Host "Note: $Note"
         $Info = Get-ADUser $Identity -Properties info | %{ $_.info}  
-        Set-ADUser $Identity -Replace @{info="$($Info) `r`n $Note"}
+        Set-ADUser $Identity -Replace @{info="$Info `r`n $Note"}
         Write-Host "Note Added" -ForegroundColor Green
     } else {
         Write-Host "Note cancelled" -ForegroundColor DarkGreen
@@ -186,62 +226,46 @@ function Select-Mailbox {
     param ($EmailBoxName, $OperationChoice)
     do {
         if (!$EmailBoxName) {
-            Write-Host "No Email Box"
+            # Write-Host "No Email Box"
             if ($OperationChoice -eq 1) {
                 Write-Host -NoNewline "Please provide a target "
                 Write-Host -NoNewline "User/Mailbox " -ForegroundColor Yellow
                 $EmailBoxName = (Read-Host "Name").Trim()
             } 
-            else {
+            elseif ($OperationChoice -eq 2) {
                 Write-Host -NoNewline "Please provide a target "
                 Write-Host -NoNewline "Shared Mailbox " -ForegroundColor Yellow
+                $EmailBoxName = (Read-Host "Name").Trim()
+            }
+            elseif ($OperationChoice -eq 3) {
+                Write-Host -NoNewline "Please provide a target "
+                Write-Host -NoNewline "Room Mailbox " -ForegroundColor Yellow
+                $EmailBoxName = (Read-Host "Name").Trim()
+            }
+            else {
+                Write-Host -NoNewline "Please provide a target "
+                Write-Host -NoNewline "Equipment Mailbox " -ForegroundColor Yellow
                 $EmailBoxName = (Read-Host "Name").Trim()
             }
 
             Write-Host "Searching the mailbox..." -ForegroundColor DarkGreen
 
-            # $OperationChoice = 1
-            <#
-            try {
-                if ($OperationChoice -eq 1) {
-                    $MailBoxList = @()
-                    Write-Host "hey1"
-                    $MailBoxList += Get-Mailbox "*$EmailBoxName*" -RecipientTypeDetails UserMailbox -ErrorAction Stop
-                    Write-Host "hey2"
-                    $MailBoxList += Get-O365Mailbox "*$EmailBoxName*" -RecipientTypeDetails UserMailbox -ErrorAction Stop
-                } else {
-                    if ($EmailBoxName -match "@") {
-                        Write-Host "hey3"
-                        $MailBoxList = Get-Mailbox $EmailBoxName -RecipientTypeDetails SharedMailbox -ErrorAction Stop
-                        $MailBoxList = Get-O365Mailbox $EmailBoxName -RecipientTypeDetails SharedMailbox -ErrorAction Stop
-                    } else {
-                        Write-Host "hey4"
-                        $MailBoxList = Get-Mailbox -Filter "(Name -like '*$EmailBoxName*') -or (Alias -like '*$EmailBoxName*') -or (EmailAddresses -like '*$EmailBoxName*')" -RecipientTypeDetails SharedMailbox -ErrorAction Stop
-                        $MailBoxList = Get-O365Mailbox -Filter "(Name -like '*$EmailBoxName*') -or (Alias -like '*$EmailBoxName*') -or (EmailAddresses -like '*$EmailBoxName*')" -RecipientTypeDetails SharedMailbox -ErrorAction Stop
-                    }
-                }
-                $IsEmailBoxExist = $true
-            } catch {
-                Write-Host -NoNewline "No match found! " -ForegroundColor Red
-                $IsEmailBoxExist = $false
-            }
-            #>
-
-
             # New Search Process - now search On-Premises exch & O365 mailbox
             $MailBoxList = @()
             if ($OperationChoice -eq 1) {
-                # $MailBoxList = @()
-                
                 try {
                     $MailBoxList += Get-Mailbox "*$EmailBoxName*" -RecipientTypeDetails UserMailbox -ErrorAction Stop
                 } catch {
                     # just null
                 }
+
+                [string]$Filter = "(RecipientTypeDetails -eq `"UserMailbox`" -and name -like `"*$EmailBoxName*`")"
                 try {
-                    $MailBoxList += Get-O365Mailbox "*$EmailBoxName*" -RecipientTypeDetails UserMailbox -ErrorAction Stop
+                    # $MailBoxList += Get-O365Mailbox -Filter $Filter -RecipientTypeDetails UserMailbox -ErrorAction Stop
+                    $MailBoxList += Get-O365Mailbox -Filter $Filter -ErrorAction Stop
                 } catch {
                     # just null
+                    Write-Host "No usermail found in O365"
                 }
             } else {
                 # $MailBoxList = @()
@@ -260,7 +284,6 @@ function Select-Mailbox {
                         Write-Host "Test2"
                     }
                 } else {
-                    Write-Host "No @"
                     try {
                         $MailBoxList += Get-Mailbox -Filter "(DisplayName -like '*$EmailBoxName*') -or (Name -like '*$EmailBoxName*') -or (Alias -like '*$EmailBoxName*') -or (EmailAddresses -like '*$EmailBoxName*')" -RecipientTypeDetails SharedMailbox -ErrorAction Stop
                     } catch {
@@ -276,7 +299,6 @@ function Select-Mailbox {
                 }
             }
             
-
             # this if-Statement block may not be necessary - Duplicated with the next If-Statement
             if ($MailBoxList) {
                 $IsEmailBoxExist = $true
@@ -284,7 +306,6 @@ function Select-Mailbox {
                 Write-Host -NoNewline "No match found! " -ForegroundColor Red
                 $IsEmailBoxExist = $false
             }
-
 
             if ($MailBoxList) {
                 if ($MailBoxList.count -gt 1) {
@@ -294,10 +315,10 @@ function Select-Mailbox {
                     $Number = 1
                     $List = @()
                     foreach ($Mailbox in $MailBoxList) {
-                        $List += New-Object psObject -Property @{'Number'=$Number; 'Name'= $Mailbox.Name;'Alias'=$Mailbox.alias;'DisplayName'=$Mailbox.DisplayName;'PrimarySmtpAddress' = $Mailbox.PrimarySmtpAddress; 'ServerName'=$Mailbox.ServerName}
+                        $List += New-Object psObject -Property @{'Number'=$Number; 'Name'= $Mailbox.Name;'Alias'=$Mailbox.alias;'DisplayName'=$Mailbox.DisplayName;'PrimarySmtpAddress' = $Mailbox.PrimarySmtpAddress; 'ServerName'=$Mailbox.ServerName;'OriginatingServer'=$Mailbox.OriginatingServer}
                         $Number ++
                     } 
-                    $List | Format-Table Number, Name, PrimarySmtpAddress, Alias, DisplayName, ServerName -AutoSize | Out-Host
+                    $List | Format-Table Number, Name, PrimarySmtpAddress, Alias, DisplayName, ServerName, OriginatingServer -AutoSize | Out-Host
 
                     # Input Validator
                     do {
@@ -321,10 +342,17 @@ function Select-Mailbox {
                                     $TryAgain = $true
                                 } else {
                                     # Write-Host "Too small number- which is ok"
-                                    $EmailBoxAlias = $MailBoxList[$MailboxNumber-1].Alias
+                                    # $EmailBoxAlias = $MailBoxList[$MailboxNumber-1].Alias
+                                    $EmailBoxSelected = $MailBoxList[$MailboxNumber-1]
                                     $EmailBoxAddress = $MailBoxList[$MailboxNumber-1].PrimarySmtpAddress
+                                    # Write-Host "$EmailBoxSelected"
+                                    # Write-Host ($EmailBoxSelected).OriginatingServer
                                     try {                                            
-                                        Get-Mailbox $EmailBoxAddress -ErrorAction Stop | Select-Object Name,Alias,DisplayName,PrimarySmtpAddress | Format-Table -AutoSize | Out-Host
+                                        if (($EmailBoxSelected).OriginatingServer -imatch "outlook.com") {
+                                            Get-O365Mailbox $EmailBoxAddress -ErrorAction Stop | Select-Object Name,Alias,DisplayName,PrimarySmtpAddress | Format-Table -AutoSize | Out-Host
+                                        } else {
+                                            Get-Mailbox $EmailBoxAddress -ErrorAction Stop | Select-Object Name,Alias,DisplayName,PrimarySmtpAddress | Format-Table -AutoSize | Out-Host
+                                        }
                                            
                                     } catch {
                                         Write-Warning "No email name found bro"
@@ -357,7 +385,8 @@ function Select-Mailbox {
                     Write-Host "1 match found" -ForegroundColor Green
                     $EmailBoxName = $MailBoxList[0]
                     $EmailBoxAddress = $MailBoxList[0].PrimarySmtpAddress
-                    $EmailBoxAlias = $MailBoxList[0].Alias
+                    # $EmailBoxAlias = $MailBoxList[0].Alias
+                    $EmailBoxSelected = $MailBoxList[$MailboxNumber-1]
                     Get-Mailbox "$EmailBoxAddress" -ErrorAction Stop | Select-Object Name,Alias,DisplayName,PrimarySmtpAddress,ServerName | Format-Table -AutoSize | Out-Host
                 }
             } 
@@ -373,14 +402,16 @@ function Select-Mailbox {
         }
     } while ($IsEmailBoxExist -eq $false)
 
-    $Name =    (Get-Mailbox -Identity $EmailBoxAddress | Select-Object Name).Name
-    $Address = (Get-Mailbox -Identity $EmailBoxAddress | Select-Object PrimarySmtpAddress).PrimarySmtpAddress
+    $Name =    ($EmailBoxSelected).Name
+    $Address = ($EmailBoxSelected).PrimarySmtpAddress
+
     Write-Host -NoNewline "Current Email Box selected : "
     Write-Host "$Name ($Address)" -ForegroundColor Green
     
-    return $EmailBoxAddress
+    return $EmailBoxSelected
 }
 
+<#
 function Write-Letter {
     param($UserName, $EmailBoxName, $Access)
     # $ConfirmLetter = Read-Host "Print a letter? (y/n)"
@@ -436,6 +467,7 @@ function Write-Letter {
         Write-Host "Letter cancelled"
     }
 }
+#>
 
 function Show-MenuMailTypeSelection {
     param($OperationChoice)
@@ -447,6 +479,8 @@ function Show-MenuMailTypeSelection {
         Write-Host "=================================================================================="
         Write-Host "    [1] User Mailbox"
         Write-HOst "    [2] Shared Mailbox"
+        Write-HOst "    [3] Room Mailbox (Resources)"
+        Write-HOst "    [4] Equipment Mailbox"
         Write-Host "=================================================================================="
         
         do {
@@ -454,7 +488,7 @@ function Show-MenuMailTypeSelection {
             if (!$Choice) {
                 Write-Host "Empty choice! Try again" -ForegroundColor DarkRed
             } else {
-                if ($Choice -match '[1-2]') {
+                if ($Choice -match '[1-4]') {
                     return $Choice
                 } else {
                     Write-Host "Wrong choice! Try again" -ForegroundColor DarkRed
@@ -494,15 +528,28 @@ function Get-DelegationInfo {
 }
 
 function Show-MenuMailDelegation {
-    param($UserName, $EmailBoxName, $OperationChoice)
+    param($UserName, $EmailBox, $OperationChoice)
 
-    $UserFullName =             Get-ADUser -Identity $UserName -Properties DisplayName | select-object -expandproperty DisplayName
-    $EmailName =                (Get-Mailbox -Identity $EmailBoxName | Select-Object Name).Name
-    $EmailAddress =             (Get-Mailbox -Identity $EmailBoxName | Select-Object PrimarySmtpAddress).PrimarySmtpAddress
+    $EmailName =        $EmailBox.Name
+    $EmailBoxName =     $EmailBox.PrimarySmtpAddress
+    $EmailAddress =     $EmailBox.PrimarySmtpAddress
+    $OriginatingServer = $EmailBox.OriginatingServer
+    $UserFullName =     Get-ADUser -Identity $UserName -Properties DisplayName | select-object -expandproperty DisplayName
+    $User = Get-ADUser -Identity $UserName
+    $upn = $User.UserPrincipalName
+    $NameOfUser = $User.Name
+    
+    if ($OriginatingServer -imatch "outlook.com") {
+        (Get-O365Mailbox $EmailBoxName).grantsendonbehalfto | Out-Host
+        $grantsendonbehalftoMatch = (Get-O365Mailbox $EmailBoxName).grantsendonbehalfto -imatch $NameOfUser
+        $FullAccessMatch =          ((Get-O365MailboxPermission -Identity $EmailBoxName | ? {$_.AccessRights -eq "FullAccess"}).User) -imatch $upn
+        $sendasMatch =              ((Get-O365RecipientPermission $EmailBoxName | ? {$_.AccessRights -eq "SendAs"}).Trustee) -imatch $upn
+    } else {
+        $grantsendonbehalftoMatch = (Get-Mailbox $EmailBoxName).grantsendonbehalfto -imatch $UserName
+        $FullAccessMatch =          ((Get-MailboxPermission -Identity $EmailBoxName | ? {$_.AccessRights -eq "FullAccess"}).User) -imatch $UserName
+        $sendasMatch =              ((Get-Mailbox $EmailBoxName | Get-ADPermission | ? {$_.ExtendedRights -like "*Send-AS*"}).user) -imatch $UserName
+    }
 
-    $grantsendonbehalftoMatch = (Get-Mailbox $EmailBoxName).grantsendonbehalfto -imatch $UserName
-    $FullAccessMatch =          ((Get-MailboxPermission -Identity $EmailBoxName | ? {$_.AccessRights -eq "FullAccess"}).User) -imatch $UserName
-    $sendasMatch =              ((Get-Mailbox $EmailBoxName | Get-ADPermission | ? {$_.ExtendedRights -like "*Send-AS*"}).user) -imatch $UserName
 
     Write-Host "=================================================================================="
     Write-Host -NoNewline " Target Email Box : "
@@ -512,28 +559,6 @@ function Show-MenuMailDelegation {
     Write-Host "=================================================================================="
 
     Get-DelegationInfo -GrantSendOnBehalfToMatch $grantsendonbehalftoMatch -FullAccessMatch $FullAccessMatch -SendAsMatch $sendasMatch
-    <#
-    if ($grantsendonbehalftoMatch -or $FullAccessMatch -or $sendasMatch) {
-        Write-Host "                               INfO"
-        Write-Host "----------------------------------------------------------------------------------"
-        if ($grantsendonbehalftoMatch) {
-            Write-Host "The User $UserFullName has been granted 'Send on behalf to' on $EmailAddress" -ForegroundColor DarkYellow
-        }
-        if ($FullAccessMatch) {
-            Write-Host "The User $UserFullName has been granted 'Full Access' on $EmailAddress" -ForegroundColor DarkYellow
-        }
-        if ($sendasMatch) {
-            Write-Host "The User $UserFullName has been granted 'Send as' on $EmailAddress" -ForegroundColor DarkYellow
-        }
-
-        Write-Host "----------------------------------------------------------------------------------"
-    } else {}
-
-    #>
-
-    # Write-Host "GrantSendOnBehalfTo"
-    # $grantsendonbehalfto | ft DisplayName, SamAccountName, Mail -AutoSize
-    # Write-Host "-------------------"
 
 
     Write-Host "                         EMAIL DELEGATION OPERATION                               "
@@ -619,8 +644,9 @@ function Show-MenuSub {
 
 
 
-# Main
+# Main Operations
 
+# Connecting Exchange sessions
 Connect-Exch
 Connect-Office365
 
@@ -628,49 +654,101 @@ do {
     Clear-Host
     Show-MastheadLogo
     
-    # Write-Host "Continue: $ConfirmContinue"
-    # Write-Host "Operation Choice: $OperationChoice"
-    # Write-Host "Email Box Name: $EmaiBoxName"
-    # Write-Host "User Id: $UserName"
-    # Write-Host "User Name: $UserFullName"
-    
     $ConfirmContinue = 'n'
     $OperationChoice = Show-MenuMailTypeSelection -OperationChoice $OperationChoice
-    $EmailBoxName    = Select-Mailbox -EmailBoxName $EmailBoxName -OperationChoice $OperationChoice # will retun mailbox address
+    $EmailBox        = Select-Mailbox -EmailBoxName $EmailBoxName -OperationChoice $OperationChoice # will retun mailbox object
+    $EmailBoxName    = $EmailBox.PrimarySmtpAddress
+    $OriginatingServer = $EmailBox.OriginatingServer
     $UserName        = Select-User -Identity $UserName
     $UserFullName    = Get-ADUser -Identity $UserName -Properties DisplayName | select-object -expandproperty DisplayName
     do {
         $TryAgainAccess = $true
-        $Access = Show-MenuMailDelegation -UserName $UserName -EmailBoxName $EmailBoxName -OperationChoice $OperationChoice
-
+        # $Access = Show-MenuMailDelegation -UserName $UserName -EmailBoxName $EmailBoxName -OperationChoice $OperationChoice
+        $Access = Show-MenuMailDelegation -UserName $UserName -EmailBox $EmailBox -OperationChoice $OperationChoice
         Switch ($Access) {
-            "addfull"   { $Granted = Set-FullAccess -EmailboxName $EmailBoxName -UserName $UserName }
-            "addsendas" { $Granted = Set-SendAsAccess -EmailboxName $EmailBoxName -UserName $UserName }
-            "addsendon" { $Granted = Set-SendOnBehalfAccess -EmailBoxName $EmailBoxName -UserName $UserName }
-            "delfull"   { $Granted = Remove-FullAccess -EmailboxName $EmailBoxName -UserName $UserName }
-            "delsendas" { $Granted = Remove-SendAsAccess -EmailboxName $EmailBoxName -UserName $UserName }
-            "delsendon" { $Granted = Remove-SendOnBehalfAccess -EmailBoxName $EmailBoxName -UserName $UserName }
-            "addfullsendas" { 
-                $AddedFull = Set-FullAccess -EmailboxName $EmailBoxName -UserName $UserName
-                $AddedSendAs = Set-SendAsAccess -EmailboxName $EmailBoxName -UserName $UserName
+            "addfull"   {
+                if($OriginatingServer -imatch "outlook.com"){
+                    $Granted = Set-O365FullAccess -EmailboxName $EmailBoxName -UserName $UserName
+                } else {
+                    $Granted = Set-FullAccess -EmailboxName $EmailBoxName -UserName $UserName
+                }
+            }
+            "addsendas" { 
+                if($OriginatingServer -imatch "outlook.com"){
+                    $Granted = Set-O365SendAsAccess -EmailboxName $EmailBoxName -UserName $UserName
+                } else {
+                    $Granted = Set-SendAsAccess -EmailboxName $EmailBoxName -UserName $UserName 
+                }
+            }
+            "addsendon" { 
+                if($OriginatingServer -imatch "outlook.com"){
+                    $Granted = Set-O365SendOnBehalfAccess -EmailBoxName $EmailBoxName -UserName $UserName
+                } else {
+                    $Granted = Set-SendOnBehalfAccess -EmailBoxName $EmailBoxName -UserName $UserName
+                }
+            }
+            "delfull"   {
+                if($OriginatingServer -imatch "outlook.com"){
+                    $Granted = Remove-O365FullAccess -EmailboxName $EmailBoxName -UserName $UserName
+                } else {
+                    $Granted = Remove-FullAccess -EmailboxName $EmailBoxName -UserName $UserName
+                }
+            }
+            "delsendas" { 
+                if($OriginatingServer -imatch "outlook.com"){
+                    $Granted = Remove-O365SendAsAccess -EmailboxName $EmailBoxName -UserName $UserName
+                } else {
+                    $Granted = Remove-SendAsAccess -EmailboxName $EmailBoxName -UserName $UserName
+                }
+            }
+            "delsendon" { 
+                if($OriginatingServer -imatch "outlook.com"){
+                    $Granted = Remove-O365SendOnBehalfAccess -EmailBoxName $EmailBoxName -UserName $UserName 
+                } else {
+                    $Granted = Remove-SendOnBehalfAccess -EmailBoxName $EmailBoxName -UserName $UserName 
+                }
+            }
+            "addfullsendas" {
+                if($OriginatingServer -imatch "outlook.com"){
+                    $AddedFull = Set-O365FullAccess -EmailboxName $EmailBoxName -UserName $UserName
+                    $AddedSendAs = Set-O365SendAsAccess -EmailboxName $EmailBoxName -UserName $UserName
+                } else {
+                    $AddedFull = Set-FullAccess -EmailboxName $EmailBoxName -UserName $UserName
+                    $AddedSendAs = Set-SendAsAccess -EmailboxName $EmailBoxName -UserName $UserName
+                }
                 $Granted = $AddedSendAs -or $AddedFull # Generous Letter Service Policy
                 # $Access = 'x'
             }
             "addfullsendon" {
-                $AddedFull = Set-FullAccess -EmailboxName $EmailBoxName -UserName $UserName
-                $AddedSendOnBehalf = Set-SendOnBehalfAccess -EmailBoxName $EmailBoxName -UserName $UserName
+                if($OriginatingServer -imatch "outlook.com"){
+                    $AddedFull = Set-O365FullAccess -EmailboxName $EmailBoxName -UserName $UserName
+                    $AddedSendOnBehalf = Set-O365SendOnBehalfAccess -EmailBoxName $EmailBoxName -UserName $UserName
+                } else {
+                    $AddedFull = Set-FullAccess -EmailboxName $EmailBoxName -UserName $UserName
+                    $AddedSendOnBehalf = Set-SendOnBehalfAccess -EmailBoxName $EmailBoxName -UserName $UserName
+                }
                 $Granted = $AddedSendOnBehalf -or $AddedFull
                 # $Access = 'x'
             }
-            "delfullsendas" { 
-                $RemovedFull = Remove-FullAccess -EmailboxName $EmailBoxName -UserName $UserName
-                $RemovedSendAs = Remove-SendAsAccess -EmailboxName $EmailBoxName -UserName $UserName
+            "delfullsendas" {
+                if($OriginatingServer -imatch "outlook.com"){
+                    $RemovedFull = Remove-O365FullAccess -EmailboxName $EmailBoxName -UserName $UserName
+                    $RemovedSendAs = Remove-O365SendAsAccess -EmailboxName $EmailBoxName -UserName $UserName
+                } else {
+                    $RemovedFull = Remove-FullAccess -EmailboxName $EmailBoxName -UserName $UserName
+                    $RemovedSendAs = Remove-SendAsAccess -EmailboxName $EmailBoxName -UserName $UserName
+                }
                 $Granted = $RemovedSendAs -or $RemovedFull # Generous Letter Service Policy
                 # $Access = 'x'
             }
             "delfullsendon" {
-                $Removedfull = Remove-FullAccess -EmailboxName $EmailBoxName -UserName $UserName
-                $RemovedSendOnBehalf = Remove-SendOnBehalfAccess -EmailBoxName $EmailBoxName -UserName $UserName
+                if($OriginatingServer -imatch "outlook.com"){
+                    $Removedfull = Remove-O365FullAccess -EmailboxName $EmailBoxName -UserName $UserName
+                    $RemovedSendOnBehalf = Remove-O365SendOnBehalfAccess -EmailBoxName $EmailBoxName -UserName $UserName
+                } else {
+                    $Removedfull = Remove-FullAccess -EmailboxName $EmailBoxName -UserName $UserName
+                    $RemovedSendOnBehalf = Remove-SendOnBehalfAccess -EmailBoxName $EmailBoxName -UserName $UserName
+                }
                 $Granted = $RemovedSendOnBehalf -or $RemovedFull
                 # $Access = 'x'
             }

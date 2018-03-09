@@ -32,7 +32,7 @@ Function Connect-Exch {
 
 Function Connect-Office365 {
     # $LiveCred = Get-Credential
-    Write-Host "Connecting O365 Exchange Server... `nPlease wait..." -ForegroundColor DarkBlue
+    Write-Host "Connecting O365 Exchange Server... `nPlease wait..." -ForegroundColor Blue
     $UserName = (Get-ADUser ($Env:USERNAME)).UserPrincipalName
     $Password = ConvertTo-SecureString $myPW -AsPlainText -Force
     $cred= New-Object System.Management.Automation.PSCredential ($UserName, $Password )
@@ -899,7 +899,9 @@ function Reset-Password {
     
 }
 
-function Get-ADUserLastLogon([string]$userName) {
+function Get-ADUserLastLogon {
+    param([string]$username)
+    
     $dcs = [system.directoryservices.activedirectory.Forest]::GetCurrentForest().domains | %{$_.DomainControllers.name}
     $array = @()
     foreach($dc in $dcs) {

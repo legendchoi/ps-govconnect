@@ -219,7 +219,7 @@ function New-ADUser {
         do {
             Clear-Host
             Write-Host "IT Clients Account Creation" -ForegroundColor Magenta
-            # Write-Host "Hello, $Handsome!`r`n"
+            # Write-Host "Hello, $Beautiful!`r`n"
             # Reference User ID
             if (!$ReferenceUser) { $UserID = Read-Host "Reference user ID (Manager)" }
             else { $UserID = $ReferenceUser }
@@ -253,8 +253,10 @@ function New-ADUser {
         Write-Host "========================================================================================="
 
         $ConfirmFirst = Read-Host "Press [ENTER] key to continue"
-        Write-Host "`rConnecting to Exchange Server. Please wait..."
-        Get-ConnectExch
+        
+        # Connecting to Exchange & O365 Servers.
+        Connect-Exch
+        Connect-Office365
 
         Write-Host "`nSTEP 1: PRELIMINARY CHECKUP" -ForegroundColor Yellow
         Write-Host "-----------------------------------------------------------------------------------------"
@@ -449,16 +451,14 @@ function New-ADUser {
             else { Write-Host "N/A" -ForegroundColor Red }
             Write-Host "-----------------------------------------------------------------------------------------"
             $ConfirmSecond = Read-Host "Press ENTER key to continue or Press [c] to cancel"
+            Write-Host "Test: The Domain is: $Domain" -ForegroundColor Yellow
+
 
             if (!$ConfirmSecond) {
 
                 if (!($ErrorTgtEmail -and $ErrorTgtEmailName)) {
-                    Enable-Mailbox $DstAccount | Out-Null
-                    Set-Mailbox $DstAccount -EmailAddresses @{ add=$DstEmailAddress }  -EmailAddressPolicyEnabled $false | Out-Null
-                    Set-Mailbox $DstAccount -PrimarySmtpAddress $DstEmailAddress | Out-Null
-                    Write-Host -NoNewline "New Email Address`t`t: "
-                    $PrimarySmtpAddress = Get-Mailbox $DstAccount | Select-Object -ExpandProperty PrimarySmtpAddress
-                    Write-Host $PrimarySmtpAddress -ForegroundColor Green
+                    $LogonName = $DstEmailAddress.Split('@')[0]
+                    $remoteRouting = "$LogonName@nswgov.mail.onmicrosoft.com"
 
                     # Modify Email address in Identity Portal
                     Write-Host -NoNewline "Modifying Email in IDM (Mail)   : "
@@ -480,6 +480,53 @@ function New-ADUser {
                     } else {
                         Add-LDAPUserProperty -UserCN $yourCN -ldapattrname "mUSRAAsapmail" -ldapattrvalue $DstEmailAddress -ldapconnection $ldapconnection
                     }
+
+
+
+                    if ($Domain -imatch "treasury") {
+                        Write-Host "Test: This is a Treasury User" -ForegroundColor Yellow
+                        # Create Emailbox on O365
+                        Enable-RemoteMailbox -Identity $DstEmailAddress -PrimarySmtpAddress $DstEmailAddress -RemoteRoutingAddress $remoteRouting
+                        $proxmail = Get-RemoteMailbox -Identity $DstEmailAddress
+                        $proxmail.EmailAddresses += ("smtp:$remoteRouting")
+                        Set-RemoteMailbox -Identity $DstEmailAddress -EmailAddresses $proxmail.EmailAddresses
+                    } else {
+                        # Create an Email on On-Premises
+                        Enable-Mailbox $DstAccount | Out-Null
+                        Set-Mailbox $DstAccount -EmailAddresses @{ add=$DstEmailAddress }  -EmailAddressPolicyEnabled $false | Out-Null
+                        Set-Mailbox $DstAccount -PrimarySmtpAddress $DstEmailAddress | Out-Null
+                    }
+
+                    Write-Host -NoNewline "New Email Address`t`t: "
+                    # $PrimarySmtpAddress = Get-Mailbox $DstAccount | Select-Object -ExpandProperty PrimarySmtpAddress
+                    $PrimarySmtpAddress = $DstEmailAddress
+                    Write-Host $PrimarySmtpAddress -ForegroundColor Green
+
+                    <#
+                    # Modify Email address in Identity Portal
+                    Write-Host -NoNewline "Modifying Email in IDM (Mail)   : "
+                    $ldapentry = Get-LDAPConnectionEntry
+                    $yourCN = Convert-UIDToCN -uid $DstAccount -ldapconnection $ldapentry
+                    $ldapconnection = Get-LDAPConnection
+
+                    # Set 'mail' property
+                    if (Test-PropertyExist -Uid $DstAccount -PropertyName "mail" -ldapconnection $ldapentry) {
+                        Set-LDAPUserProperty -UserCN $yourCN -LdapAttrName "mail" -ldapattrvalue $DstEmailAddress -ldapconnection $ldapconnection
+                    } else {
+                        Add-LDAPUserProperty -UserCN $yourCN -ldapattrname "mail" -ldapattrvalue $DstEmailAddress -ldapconnection $ldapconnection
+                    }
+
+                    Write-Host -NoNewline "Modifying Email in IDM (Sapmail): "
+                    # Set 'mUSRAAsapmail' property 
+                    if (Test-PropertyExist -Uid $DstAccount -PropertyName "mUSRAAsapmail" -ldapconnection $ldapentry) {
+                        Set-LDAPUserProperty -UserCN $yourCN -LdapAttrName "mUSRAAsapmail" -ldapattrvalue $DstEmailAddress -ldapconnection $ldapconnection
+                    } else {
+                        Add-LDAPUserProperty -UserCN $yourCN -ldapattrname "mUSRAAsapmail" -ldapattrvalue $DstEmailAddress -ldapconnection $ldapconnection
+                    }
+                    #>
+
+
+
                 } else {
                     Write-Host "Error: Filed to create a user Emailbox" -ForegroundColor Red
                 }

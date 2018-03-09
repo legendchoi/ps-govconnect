@@ -1,11 +1,6 @@
 ECHO OFF
 CLS
 
-set arg1=%1
-if [%1] == [Yes] GOTO UPDATE
-if [%1] == [No] GOTO BEGIN
-if [%1] == [] GOTO UPDATE
-
 :UPDATE
 rem 
 echo CHECK  : Checking Folders...
@@ -40,10 +35,60 @@ echo.
 rem echo Update completed. Press any keys to main menu
 rem pause
 
-:BEGIN
+
+:ROLE
+CLS
+ECHO.   
+ECHO		PLEASE SELECT YOUR ROLE		     
+ECHO.
+ECHO.
+ECHO		1  Tier 1 Agent
+ECHO		2  Tier 2 Agent
+ECHO.
+ECHO.
+SET /P R=Type the number then press ENTER: 
+ECHO.
+IF %R% ==1 GOTO BEGIN1 
+IF %R% ==2 GOTO BEGIN2
+GOTO END
+
+
+:BEGIN1
 CLS
 ECHO.                 
-ECHO GovConnectNSW Service Desk Scripts v0.7
+ECHO GovConnectNSW Service Desk Scripts v0.6
+ECHO.
+ECHO PLEASE MAKE A CHOICE		     
+ECHO.
+ECHO.
+ECHO		(1).  Check User Account Lock Status and Password reset (AD only)
+ECHO.
+ECHO		(8).  Check Mobile Device Access (AIRCARD AND MOBILEIRON)
+ECHO.
+ECHO		(10). Check User Info
+ECHO.
+ECHO		(0).  EXIT
+ECHO.
+ECHO.
+SET /P M=Type the number then press ENTER: 
+ECHO.
+IF %M% ==0  GOTO GETOUT 
+IF %M% ==10 GOTO CHKMNG
+IF %M% ==9  GOTO DL
+IF %M% ==8  GOTO MDM
+IF %M% ==7  GOTO SHAREDMAIL
+If %M% ==6  GOTO CTX_ACCESS
+if %M% ==5  goto NET_ACC
+If %M% ==4  GOTO COPY_GROUP
+If %M% ==3  GOTO ACC_TERM
+If %M% ==2  GOTO ACC_CREATION
+If %M% ==1  GOTO PW_RST
+GOTO END
+
+:BEGIN2
+CLS
+ECHO.                 
+ECHO GovConnectNSW Service Desk Scripts v0.6
 ECHO.
 ECHO        PLEASE MAKE A CHOICE
 ECHO.
@@ -161,7 +206,8 @@ GOTO END
 :END
 ECHO Completed. Bringing up main menu again...
 pause
-GOTO BEGIN
+IF %R% ==1 GOTO BEGIN1 
+IF %R% ==2 GOTO BEGIN2
 
 %~f0 rem call %~dp0go.bat
 

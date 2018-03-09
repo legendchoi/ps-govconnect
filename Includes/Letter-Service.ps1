@@ -79,10 +79,12 @@ Function Write-NAPCLetter {
 function Write-SMLetter {
     param($UserName, $EmailBoxName, $Access)
     # $ConfirmLetter = Read-Host "Print a letter? (y/n)"
+
     $ConfirmLetter = 'y'
     if ($ConfirmLetter -ieq "y") {
-        $EmailBoxAddress =  (Get-Mailbox -Identity $EmailBoxName | Select-Object PrimarySmtpAddress).PrimarySmtpAddress
+        # $EmailBoxAddress =  (Get-Mailbox -Identity $EmailBoxName | Select-Object PrimarySmtpAddress).PrimarySmtpAddress
         # $EmailBoxName =     (Get-Mailbox -Identity $EmailBoxName | Select-Object Alias).Alias
+        $EmailBoxAddress = $EmailBoxName
         $UserFullName =     Get-ADUser -Identity $UserName -Properties DisplayName | select-object -expandproperty DisplayName
 
         $Today = Get-Date -Format "dd-MMM-yyyy"

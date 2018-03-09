@@ -2,12 +2,12 @@
 Please change -Identity parmameter as to what you desire to search
 #>
 
-."$PSScriptRoot\includes\functions.ps1"
+. "$PSScriptRoot\includes\Functions.ps1"
 
-Write-Host "Connecting Exchange Server ... Please wait ..." -ForegroundColor Yellow
-Get-ConnectExch
+# Write-Host "Connecting Exchange Server ... Please wait ..." -ForegroundColor Yellow
+Connect-Exch
 
-<#
+
 function Select-Mailbox {
     param ($EmailBoxName, $OperationChoice)
 
@@ -136,7 +136,7 @@ function Select-Mailbox {
     return $EmailBoxAddress
 }
 
-#>
+
 
 Clear-Host
 $sharedmailbox = Select-Mailbox -OperationChoice 2
@@ -153,6 +153,7 @@ $arr_sa = $SendAsList.user | % { $_ -replace "govnet\\", ""}
 # Lists
 Write-Host "===== Full Access ====="
 $arr_fl | % { (Get-ADUser $_ -Properties displayname).displayname } | sort -Unique
+
 
 Write-Host "`n===== Send As Access ====="
 $arr_sa | % { (Get-ADUser $_ -Properties displayname).displayname } | sort -Unique
