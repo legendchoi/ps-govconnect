@@ -302,19 +302,3 @@ if ($continue -ieq 'y') {
 } else {
     Write-Host "Cancelled" -ForegroundColor Red
 }
-
-
-# $c = $null
-
-# sample path and users
-# $TargetPath = "\\vfilerdfs\OFS-TA-Group\Business Units\PMO\Project Repository\NSWTA115S_O & M Transformation Program"
-# $TargetPath = "\\vfilerdfs\OFS-TA-Group\Business Units\PMO\Project Repository"
-# $TargetPath = "\\vfilerdfs\OFS-TA-Group\Business Units\PMO"
-# \\vfilerdfs\OFS-TA-Group\Business Units
-# \\vfilerdfs\OFS-TA-Group\Business Units\PMO\Project Repository\NSWTA115S_O & M Transformation Program
-
-# Daniel Roelink
-# Ajit Narayan
-# Rami Hourani
-# Christian Chillari
-# Brad Pointing

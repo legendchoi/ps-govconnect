@@ -547,9 +547,24 @@ function Select-User {
                         $repeat = $true
                         $Identity = $null
                     } else {
-                        $username = $UserNameList.SamAccountName
+                        do {
+                            $doitagain = $false
+                            $username = $UserNameList.SamAccountName
+                            get-aduser $username -Properties * | select SamAccountName, @{n="FirstName";e="GivenName"}, @{n="LastName";e="Surname"}, DisplayName, @{name="Email";e="UserPrincipalName"} | Format-Table SamAccountName, FirstName, LastName, DisplayName, Email -AutoSize | Out-Host
+                            $ConfirmUser = Read-Host "Please press [ENTER] to confirm or [X] to search again."
+                            if ($ConfirmUser -ieq "x") {
+                                # Search again
+                                $username = $null
+                                $repeat = $true
+                            } elseif ($ConfirmUser -eq "") {
+                                # Enter
+                                # $username = $UserNameList.SamAccountName
+                            } else {
+                                Write-Host "Wrong choice!"
+                                $doitagain = $true
+                            }
+                        } while ($doitagain)
                     }
-
                 } else {
                     # Stop processing it then return $UserName as $Flag
                     $UserName = $Flag

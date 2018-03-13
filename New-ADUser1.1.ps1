@@ -218,6 +218,7 @@ function New-ADUser {
     do {
         do {
             Clear-Host
+            $O365Domains = "treasury|industrialrelations"
             Write-Host "IT Clients Account Creation" -ForegroundColor Magenta
             # Write-Host "Hello, $Beautiful!`r`n"
             # Reference User ID
@@ -256,7 +257,7 @@ function New-ADUser {
         
         # Connecting to Exchange & O365 Servers.
         Connect-Exch
-        Connect-Office365
+        # Connect-Office365
 
         Write-Host "`nSTEP 1: PRELIMINARY CHECKUP" -ForegroundColor Yellow
         Write-Host "-----------------------------------------------------------------------------------------"
@@ -451,7 +452,7 @@ function New-ADUser {
             else { Write-Host "N/A" -ForegroundColor Red }
             Write-Host "-----------------------------------------------------------------------------------------"
             $ConfirmSecond = Read-Host "Press ENTER key to continue or Press [c] to cancel"
-            Write-Host "Test: The Domain is: $Domain" -ForegroundColor Yellow
+            # Write-Host "Test: The Domain is: $Domain" -ForegroundColor Yellow
 
 
             if (!$ConfirmSecond) {
@@ -481,10 +482,14 @@ function New-ADUser {
                         Add-LDAPUserProperty -UserCN $yourCN -ldapattrname "mUSRAAsapmail" -ldapattrvalue $DstEmailAddress -ldapconnection $ldapconnection
                     }
 
+                    <#
+                    while () {
+                    }
+                    #>
+                    Set-ADUser $DstAccount -UserPrincipalName $DstEmailAddress
 
-
-                    if ($Domain -imatch "treasury") {
-                        Write-Host "Test: This is a Treasury User" -ForegroundColor Yellow
+                    if ($Domain -imatch $O365Domains) {
+                        # Write-Host "Test: This is a Treasury User" -ForegroundColor Yellow
                         # Create Emailbox on O365
                         Enable-RemoteMailbox -Identity $DstEmailAddress -PrimarySmtpAddress $DstEmailAddress -RemoteRoutingAddress $remoteRouting
                         $proxmail = Get-RemoteMailbox -Identity $DstEmailAddress

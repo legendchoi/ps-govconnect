@@ -1,6 +1,9 @@
 <#
-SharedEmail Version 2.2
-.DESCRIPTION 
+SharedEmail Version 2.3
+.DESCRIPTION
+v2.3 - O365 functionality added
+v2.2 
+v2.1 
 v2.0 - bug fix when removing full & send as when it is cancelled which previously indicated as granted. It now show 'cencelled'
 v1.8 - use 'alias' for selecting emailbox
 #>
@@ -46,7 +49,6 @@ function Set-O365FullAccess {
     return $Granted
 }
 
-
 function Remove-FullAccess {
     param ($EmailboxName, $UserName)
     $Granted = $true
@@ -61,7 +63,6 @@ function Remove-FullAccess {
     }
     return $Granted
 }
-
 
 function Remove-O365FullAccess {
     param ($EmailboxName, $UserName)
@@ -224,48 +225,87 @@ function Write-Note {
 
 function Select-Mailbox {
     param ($EmailBoxName, $OperationChoice)
+
     do {
         if (!$EmailBoxName) {
-            # Write-Host "No Email Box"
-            if ($OperationChoice -eq 1) {
-                Write-Host -NoNewline "Please provide a target "
-                Write-Host -NoNewline "User/Mailbox " -ForegroundColor Yellow
-                $EmailBoxName = (Read-Host "Name").Trim()
-            } 
-            elseif ($OperationChoice -eq 2) {
-                Write-Host -NoNewline "Please provide a target "
-                Write-Host -NoNewline "Shared Mailbox " -ForegroundColor Yellow
-                $EmailBoxName = (Read-Host "Name").Trim()
-            }
-            elseif ($OperationChoice -eq 3) {
-                Write-Host -NoNewline "Please provide a target "
-                Write-Host -NoNewline "Room Mailbox " -ForegroundColor Yellow
-                $EmailBoxName = (Read-Host "Name").Trim()
-            }
-            else {
-                Write-Host -NoNewline "Please provide a target "
-                Write-Host -NoNewline "Equipment Mailbox " -ForegroundColor Yellow
-                $EmailBoxName = (Read-Host "Name").Trim()
-            }
+            do {
+                switch ($OperationChoice) {
+                    1 {
+                        Write-Host "Selection 1"
+                        Write-Host -NoNewline "Please provide a target "
+                        Write-Host -NoNewline "User/Mailbox " -ForegroundColor Yellow
+                        $EmailBoxName = (Read-Host "Name").Trim()
+                    }
+                    2 {
+                        Write-Host "Selection 2"
+                        Write-Host -NoNewline "Please provide a target "
+                        Write-Host -NoNewline "Shared Mailbox " -ForegroundColor Yellow
+                        $EmailBoxName = (Read-Host "Name").Trim()
+                    }
+                    3 {
+                        Write-Host "Selection 3"
+                        Write-Host -NoNewline "Please provide a target "
+                        Write-Host -NoNewline "Room Mailbox " -ForegroundColor Yellow
+                        $EmailBoxName = (Read-Host "Name").Trim()
+                    }
+                    4 {
+                        Write-Host "Selection 4"
+                        Write-Host -NoNewline "Please provide a target "
+                        Write-Host -NoNewline "Equipment Mailbox " -ForegroundColor Yellow
+                        $EmailBoxName = (Read-Host "Name").Trim()
+                    }
+                    default {
+                        Write-Host "Quit"
+                    }
+                }
 
-            Write-Host "Searching the mailbox..." -ForegroundColor DarkGreen
+                <#
+                if ($OperationChoice -eq 1) {
+                    
+                } 
+                elseif ($OperationChoice -eq 2) {
+
+                }
+                elseif ($OperationChoice -eq 3) {
+
+                }
+                else {
+
+                }
+                #>
+                if (!$EmailBoxName) { Write-Warning "Null value found. Please provide the emailbox name" }
+            } while (!$EmailBoxName)
+            
+
+            if ($OperationChoice -ne 0) {
+                Write-Host "Searching the mailbox..." -ForegroundColor DarkGreen
+            }
+            
 
             # New Search Process - now search On-Premises exch & O365 mailbox
             $MailBoxList = @()
+
+            <#
+            Switch ($OperationChoice) {
+                "1" {}
+                "2" {}
+                "3" {}
+                "4" {}
+                default {}
+            }
+            #>
+
             if ($OperationChoice -eq 1) {
                 try {
                     $MailBoxList += Get-Mailbox "*$EmailBoxName*" -RecipientTypeDetails UserMailbox -ErrorAction Stop
-                } catch {
-                    # just null
-                }
+                } catch { <# do nothing #> }
 
                 [string]$Filter = "(RecipientTypeDetails -eq `"UserMailbox`" -and name -like `"*$EmailBoxName*`")"
                 try {
-                    # $MailBoxList += Get-O365Mailbox -Filter $Filter -RecipientTypeDetails UserMailbox -ErrorAction Stop
                     $MailBoxList += Get-O365Mailbox -Filter $Filter -ErrorAction Stop
                 } catch {
                     # just null
-                    Write-Host "No usermail found in O365"
+                    # Write-Host "No usermail found in O365"
                 }
             } else {
                 # $MailBoxList = @()
@@ -300,13 +340,15 @@ function Select-Mailbox {
             }
             
             # this if-Statement block may not be necessary - Duplicated with the next If-Statement
+            <#
             if ($MailBoxList) {
                 $IsEmailBoxExist = $true
             } else {
                 Write-Host -NoNewline "No match found! " -ForegroundColor Red
                 $IsEmailBoxExist = $false
             }
-
+            #>
+            
             if ($MailBoxList) {
                 if ($MailBoxList.count -gt 1) {
                     $NumOfMailboxFound = $MailboxList.Count
@@ -481,6 +523,7 @@ function Show-MenuMailTypeSelection {
         Write-HOst "    [2] Shared Mailbox"
         Write-HOst "    [3] Room Mailbox (Resources)"
         Write-HOst "    [4] Equipment Mailbox"
+        Write-HOst "    [0] Quit"
         Write-Host "=================================================================================="
         
         do {
@@ -488,7 +531,7 @@ function Show-MenuMailTypeSelection {
             if (!$Choice) {
                 Write-Host "Empty choice! Try again" -ForegroundColor DarkRed
             } else {
-                if ($Choice -match '[1-4]') {
+                if ($Choice -match '[1-2]') {
                     return $Choice
                 } else {
                     Write-Host "Wrong choice! Try again" -ForegroundColor DarkRed
@@ -567,12 +610,12 @@ function Show-MenuMailDelegation {
     # User Mailbox
     Write-Host "  [1] Add FullAccess  [2] Add Send on Behalf  [3] Add Both (Full & SendOnBehalf)  "
     Write-Host "  [4] Del FullAccess  [5] Del Send on Behalf  [6] Del Both (Full & SendOnBehalf)  "
-    Write-Host "  [7] Go Menu"
+    Write-Host "  [0] Go Menu"
     } else {
     # Shared Mailbox
     Write-Host "    [1] Add FullAccess        [2] Add SendAs        [3] Add Both (Full & SendAs)  "
     Write-Host "    [4] Del FullAccess        [5] Del SendAs        [6] Del Both (Full & SendAs)  "
-    Write-Host "    [7] Go Menu"
+    Write-Host "    [0] Go Menu"
     }
     Write-Host "=================================================================================="
     
@@ -581,7 +624,7 @@ function Show-MenuMailDelegation {
         if (!$Choice) {
             Write-Host "Empty choice! Try again" -ForegroundColor DarkRed
         } else {
-            if ($Choice -match '[1-7]') {
+            if ($Choice -match '[0-6]') {
                 # return $Access
                 if ($OperationChoice -ieq 1) {
                     # User Mailbox
