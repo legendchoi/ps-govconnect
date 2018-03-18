@@ -139,6 +139,34 @@ function Add-LDAPUserProperty {
     }
 }
 
+function Remove-LDAPUserProperty {
+    [CmdletBinding()]
+    param (
+        $UserCN,  # = cn=TSR6602,ou=active,o=vault"
+        $ldapattrname,  # = "mUSRaccountForgotPasswordEnabled",
+        $ldapattrvalue, # = "TRUE"
+        $ldapconnection
+    )
+    $TargetUserDN = "cn=$UserCN,ou=active,o=vault"
+    # $a = New-Object System.DirectoryServices.Protocols.DirectoryAttributeModification
+    $a = New-Object System.DirectoryServices.Protocols.DirectoryAttributeModification
+    $a.Name = $ldapattrname
+    $a.Operation = [System.DirectoryServices.Protocols.DirectoryAttributeOperation]::Delete
+    $a.($ldapattrvalue) | Out-Null
+    $r = (new-object "System.DirectoryServices.Protocols.ModifyRequest")
+    $r.DistinguishedName = "$targetuserdn"
+    $r.Modifications.Add($a) | Out-Null
+    $re = $ldapconnection.SendRequest($r)
+    if ($re.ResultCode -ne [System.directoryServices.Protocols.ResultCode]::Success)
+    {
+        write-host "Failed!" -ForegroundColor Red
+        # write-host ("ResultCode: " + $re.ResultCode)
+        # write-host ("Message: " + $re.ErrorMessage)
+    } else {
+        Write-host "Added: $ldapattrname = $ldapattrvalue" -ForegroundColor Green
+    }
+}
+
 function Get-LDAPUserProperty {
     param(
         $UserId,
