@@ -140,9 +140,43 @@ function Add-LDAPUserProperty {
 }
 
 function Get-LDAPUserProperty {
+    param(
+        $UserId,
+        $ldapattrname,
+        $ldapconnection
+    )
 
-    param()
+    $UserCN = (Get-ADUser $UserId).adminDisplayName
+    $TargetUserDN = "cn=$UserCN,ou=active,o=vault"
+    # $ldapattrname = "costCenter"
+    $SearchTargetOU = "ou=active,o=vault"
+    $SearchFilter = "(uid=$UserID)"
+    $SearchScope = [System.DirectoryServices.Protocols.SearchScope]::Subtree
+    $SearchAttrList = $null
+    # $BaseDN = 
 
+    # Request
+    $Request = New-Object System.DirectoryServices.Protocols.SearchRequest -ArgumentList $SearchTargetOU, $SearchFilter, $SearchScope, $SearchAttrList
+    # $Request.DistinguishedName = "$TargetUserDN"
+    # $Request.Attributes = "$ldapattrname"
+    # $Request.Attributes = "costCenter"
+
+    #Response
+    # $Response = New-Object System.DirectoryServices.Protocols.SearchResponse
+    # [System.DirectoryServices.Protocols.SearchResponse]$Response = $LDAPConnection.SendRequest($Request)
+    $Response = $LDAPConnection.SendRequest($Request)
+    # Write-Host "The result is $Response"
+    
+    # FindAll()
+    # $Response.Entries.Attributes
+    # FindOne()
+    $Response.Entries.Attributes[$LDAPAttrName].GetValues('string')
+
+    <#
+    foreach ($SearchEntries in $Response.Entries) {
+        Write-Host $SearchEntries.DistinguishedName
+    } 
+    #>
     
 }
 
@@ -898,6 +932,8 @@ function Reset-Password {
     $Password = ConvertTo-SecureString -String $NewPassword -AsPlainText -Force
 
     # I found there is a password sync probem if reset password from one logonserver. So do it all!
+    # Method 1
+    <#
     try {
         Set-ADAccountPassword -Server govnetdc01 -Identity $Identity -Reset -NewPassword $Password -ErrorAction Stop
         Set-ADAccountPassword -Server govnetdc02 -Identity $Identity -Reset -NewPassword $Password -ErrorAction Stop
@@ -911,6 +947,19 @@ function Reset-Password {
         Write-Host "Password reset failed. The provided password does not meet the password requirement" -ForegroundColor Red
         Write-Host "The password must be alphnumeric and include a special character" -ForegroundColor Red
     } 
+    #>
+    # Method 2
+    
+    $DCs = (Get-ADGroupMember "Domain Controllers").name
+    foreach ($DC in $DCs) {
+        try {
+            Set-ADAccountPassword -Server $DC -Identity $Identity -Reset -NewPassword $Password -ErrorAction Stop
+            Write-Host "Password reset: $NewPassword" -ForegroundColor Green
+        } catch {
+            Write-Host "Password reset failed. The provided password does not meet the password requirement" -ForegroundColor Red
+            Write-Host "The password must be alphnumeric and include a special character" -ForegroundColor Red
+        }
+    }
     
 }
 

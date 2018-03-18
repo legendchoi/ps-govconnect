@@ -486,7 +486,10 @@ function New-ADUser {
                     while () {
                     }
                     #>
-                    Set-ADUser $DstAccount -UserPrincipalName $DstEmailAddress
+                    $DCs = (Get-ADGroupMember "Domain Controllers").name
+                    foreach ($DC in $DCs) {
+                        Set-ADUser $DstAccount -UserPrincipalName $DstEmailAddress -Server $DC
+                    }
 
                     if ($Domain -imatch $O365Domains) {
                         # Write-Host "Test: This is a Treasury User" -ForegroundColor Yellow

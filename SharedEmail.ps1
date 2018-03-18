@@ -225,31 +225,32 @@ function Write-Note {
 
 function Select-Mailbox {
     param ($EmailBoxName, $OperationChoice)
+    # Write-Host "Test2: Email Box Name = $EmailBoxName"
 
     do {
         if (!$EmailBoxName) {
             do {
                 switch ($OperationChoice) {
                     1 {
-                        Write-Host "Selection 1"
+                        # Write-Host "Selection 1"
                         Write-Host -NoNewline "Please provide a target "
                         Write-Host -NoNewline "User/Mailbox " -ForegroundColor Yellow
                         $EmailBoxName = (Read-Host "Name").Trim()
                     }
                     2 {
-                        Write-Host "Selection 2"
+                        # Write-Host "Selection 2"
                         Write-Host -NoNewline "Please provide a target "
                         Write-Host -NoNewline "Shared Mailbox " -ForegroundColor Yellow
                         $EmailBoxName = (Read-Host "Name").Trim()
                     }
                     3 {
-                        Write-Host "Selection 3"
+                        # Write-Host "Selection 3"
                         Write-Host -NoNewline "Please provide a target "
                         Write-Host -NoNewline "Room Mailbox " -ForegroundColor Yellow
                         $EmailBoxName = (Read-Host "Name").Trim()
                     }
                     4 {
-                        Write-Host "Selection 4"
+                        # Write-Host "Selection 4"
                         Write-Host -NoNewline "Please provide a target "
                         Write-Host -NoNewline "Equipment Mailbox " -ForegroundColor Yellow
                         $EmailBoxName = (Read-Host "Name").Trim()
@@ -439,7 +440,8 @@ function Select-Mailbox {
             }
         }
         else {
-            $EmailBoxAddress = $EmailBoxName
+            $EmailBoxSelected = Get-Mailbox $EmailBoxName
+            # $EmailBoxAddress = $EmailBoxName
             $IsEmailBoxExist = $true
         }
     } while ($IsEmailBoxExist -eq $false)
@@ -521,9 +523,9 @@ function Show-MenuMailTypeSelection {
         Write-Host "=================================================================================="
         Write-Host "    [1] User Mailbox"
         Write-HOst "    [2] Shared Mailbox"
-        Write-HOst "    [3] Room Mailbox (Resources)"
-        Write-HOst "    [4] Equipment Mailbox"
-        Write-HOst "    [0] Quit"
+        # Write-HOst "    [3] Room Mailbox (Resources)"
+        # Write-HOst "    [4] Equipment Mailbox"
+        # Write-HOst "    [0] Quit"
         Write-Host "=================================================================================="
         
         do {
@@ -696,6 +698,8 @@ Connect-Office365
 do {
     Clear-Host
     Show-MastheadLogo
+    # Write-Host "Test: Email Address = $EmailAddress"
+    # Write-Host "Test: Email Box Name = $EmailBoxName"
     
     $ConfirmContinue = 'n'
     $OperationChoice = Show-MenuMailTypeSelection -OperationChoice $OperationChoice
@@ -827,7 +831,8 @@ do {
                 {   $UserName = $null
                     $TryAgainAccess = $false
                     $ConfirmContinue = 'y'
-                    Write-Host "Email Address = $EmailAddress"
+                    # Write-Host "Test: Email Address = $EmailAddress"
+                    # Write-Host "Test: Email Box Name = $EmailBoxName"
                 }
                 3 # Change target Mailbox
                 {   $EmailBoxName = $null
