@@ -118,6 +118,20 @@ function Set-O365SendAsAccess {
     return $Granted
 }
 
+function Remove-SendAsAccess {
+    param ($EmailboxName, $UserName)
+    $Granted = $true
+    Write-Host -NoNewline "Removing Send As access: " -ForegroundColor DarkCyan
+    try { 
+        Get-Mailbox $EmailBoxName | Remove-ADPermission -User $UserName -ExtendedRights "Send As" -ErrorAction Stop -WarningAction Stop -Confirm:$false
+        Write-Host "Send As removed" -ForegroundColor Green
+    } catch { 
+        Write-Host "Send As removal failed" -ForegroundColor Red
+        $Granted = $false 
+    }
+    return $Granted
+}
+
 function Remove-O365SendAsAccess {
     param ($EmailboxName, $UserName)
     $Granted = $true
@@ -440,9 +454,19 @@ function Select-Mailbox {
             }
         }
         else {
-            $EmailBoxSelected = Get-Mailbox $EmailBoxName
+            try {
+                # Write-Host "Test1"
+                $EmailBoxSelected = Get-Mailbox $EmailBoxName -ErrorAction Stop
+                $IsEmailBoxExist = $true
+            } catch {
+                # Write-Host "Test2"
+                $EmailBoxSelected = Get-O365Mailbox $EmailBoxName -ErrorAction Stop
+                $IsEmailBoxExist = $true
+            } finally {
+                $Error
+            }
             # $EmailBoxAddress = $EmailBoxName
-            $IsEmailBoxExist = $true
+            # $IsEmailBoxExist = $true
         }
     } while ($IsEmailBoxExist -eq $false)
 
