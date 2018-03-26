@@ -14,8 +14,8 @@ function Select-DL {
         
         if($DL) {
             $DL = "*$DL*"
-            $DLList = Get-ADGroup -Filter {GroupCategory -eq "Distribution" -and Name -like $DL} -Properties Name, SamAccountName, GroupScope, Mail
-
+            $DLList = Get-ADGroup -Filter {GroupCategory -eq "Distribution" -and (Name -like $DL -or mail -like $DL -or SamAccountName -like $DL)} -Properties Name, SamAccountName, GroupScope, Mail
+            
             if ($DLList.length -gt 1) {
                 $Number = 1
                 $DLList |

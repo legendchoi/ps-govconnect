@@ -139,6 +139,7 @@ function Add-LDAPUserProperty {
     }
 }
 
+# In Progress
 function Remove-LDAPUserProperty {
     [CmdletBinding()]
     param (

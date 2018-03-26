@@ -30,13 +30,14 @@ function Hide-FromAddressLists {
         Set-Mailbox -Identity $Identity -HiddenFromAddressListsEnabled $true -WarningAction Stop -ErrorAction Stop
         Write-Host "$UserName has been removed from the Address List" -ForegroundColor Green
     } catch {
-        Write-Host "Failed to remove $UserName from the Address List" -ForegroundColor Red
+        Write-Warning "Failed to remove $UserName from GAL. Passibly it's already been hidden."
     }
 
     # Close Exchange PSSession
     Get-PSSession | Remove-PSSession
 }
 
+<#
 function Reset-Password {
     param($Identity)
     $Random = (Random-Password).toString()
@@ -50,6 +51,7 @@ function Reset-Password {
     Set-ADAccountPassword -Server govnetdc07 -Identity $Identity -Reset -NewPassword $NewPassword
     Write-Host "Password reset: $Random" -ForegroundColor Green
 }
+#>
 
 function Hide-ForgetPassword {
     param($Identity)
@@ -72,6 +74,12 @@ function Hide-ForgetPassword {
     }
 }
 
+function Disable-UserLDAPAccount {
+    param ($Identity)
+
+    $ldapconn = Get-LDAPConnection
+    Set-LDAPUserProperty -Identity $Identity -ldapattrname "employeeStatus" -ldapattrvalue "I" -ldapconnection $ldapconn
+}
 
 function Disable-UserADAccount {
     param ($Identity,$TicketNumber)
@@ -104,37 +112,42 @@ function Terminator {
     Write-Host "2. Hide the user from GAL (Global Address List)"
     Write-Host "3. Hide the user's Forget Password in IDM"
     Write-Host "4. Reset password"
-    Write-Host "5. Disable the AD account`n"
+    Write-Host "5. Disable the account in AD and IDM`n"
+    Write-Host "-------------------------------------------------------------------------------------------------------"
+    Write-Warning "This will permanently disable the account. Please use this function with a caution."
+    $ConfirmTermination = Read-Host "Press any key [ENTER] to proceed or any keys to cancel"
 
-    $ConfirmTermination = Read-Host "Press any key to proceed"
+    if ($ConfirmTermination -eq "") {
+        Write-Host "-----------------------------" -ForegroundColor Magenta
+        Write-Host "Remove all groups" -ForegroundColor Magenta
+        Write-Host "-----------------------------" -ForegroundColor Magenta
+        Remove-AllGroups -Identity $Identity -TicketNumber $TickerNumber
 
-    Write-Host "-----------------------------" -ForegroundColor Magenta
-    Write-Host "Remove all groups" -ForegroundColor Magenta
-    Write-Host "-----------------------------" -ForegroundColor Magenta
-    Remove-AllGroups -Identity $Identity -TicketNumber $TickerNumber
+        Write-Host "-----------------------------" -ForegroundColor Magenta
+        Write-Host "Hide from address list" -ForegroundColor Magenta
+        Write-Host "-----------------------------" -ForegroundColor Magenta
+        Hide-FromAddressLists -Identity $Identity
 
-    Write-Host "-----------------------------" -ForegroundColor Magenta
-    Write-Host "Hide from address list" -ForegroundColor Magenta
-    Write-Host "-----------------------------" -ForegroundColor Magenta
-    Hide-FromAddressLists -Identity $Identity
+        Write-Host "-----------------------------" -ForegroundColor Magenta
+        Write-Host "Reset password" -ForegroundColor Magenta
+        Write-Host "-----------------------------" -ForegroundColor Magenta
+        Reset-Password -Identity $Identity
 
-    Write-Host "-----------------------------" -ForegroundColor Magenta
-    Write-Host "Reset password" -ForegroundColor Magenta
-    Write-Host "-----------------------------" -ForegroundColor Magenta
-    Reset-Password -Identity $Identity
+        Write-Host "-----------------------------" -ForegroundColor Magenta
+        Write-Host "Hide the user forget password" -ForegroundColor Magenta
+        Write-Host "-----------------------------" -ForegroundColor Magenta
+        Hide-ForgetPassword -Identity $Identity
 
-    Write-Host "-----------------------------" -ForegroundColor Magenta
-    Write-Host "Hide the user forget password" -ForegroundColor Magenta
-    Write-Host "-----------------------------" -ForegroundColor Magenta
-    Hide-ForgetPassword -Identity $Identity
+        Write-Host "-----------------------------" -ForegroundColor Magenta
+        Write-Host "Disable the user account" -ForegroundColor Magenta
+        Write-Host "-----------------------------" -ForegroundColor Magenta
+        Disable-UserLDAPAccount -Identity $Identity
+        Disable-UserADAccount -Identity $Identity -TicketNumber $TickerNumber
 
-    Write-Host "-----------------------------" -ForegroundColor Magenta
-    Write-Host "Disable the user account" -ForegroundColor Magenta
-    Write-Host "-----------------------------" -ForegroundColor Magenta
-    Disable-UserADAccount -Identity $Identity -TicketNumber $TickerNumber
-
-    Write-Host "The user account is terminated" -ForegroundColor Red -BackgroundColor Green
-
+        Write-Host "The user account has been terminated" -ForegroundColor Red -BackgroundColor Yellow
+    } else {
+        Write-Host "Cancelled"
+    }
 }
 
 Clear-Host

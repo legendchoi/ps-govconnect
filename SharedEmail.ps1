@@ -139,7 +139,7 @@ function Remove-O365SendAsAccess {
     Write-Host -NoNewline "Removing Send As access: " -ForegroundColor DarkCyan
     try { 
         # Get-Mailbox $EmailBoxName | Remove-ADPermission -User $UserName -ExtendedRights "Send As" -ErrorAction Stop -WarningAction Stop -Confirm:$false
-        Remove-O365RecipientPermission $EmailBoxName -AccessRights SendAs -Trustee $UserName -Confirm:$false -ErrorAction Stop -WarningAction Stop
+        Remove-O365RecipientPermission $EmailBoxName -AccessRights SendAs -Trustee $UserName -Confirm:$false -ErrorAction Stop
         Write-Host "Send As removed" -ForegroundColor Green
     } catch { 
         Write-Host "Send As removal failed" -ForegroundColor Red
@@ -240,31 +240,26 @@ function Write-Note {
 function Select-Mailbox {
     param ($EmailBoxName, $OperationChoice)
     # Write-Host "Test2: Email Box Name = $EmailBoxName"
-
     do {
         if (!$EmailBoxName) {
             do {
                 switch ($OperationChoice) {
                     1 {
-                        # Write-Host "Selection 1"
                         Write-Host -NoNewline "Please provide a target "
                         Write-Host -NoNewline "User/Mailbox " -ForegroundColor Yellow
                         $EmailBoxName = (Read-Host "Name").Trim()
                     }
                     2 {
-                        # Write-Host "Selection 2"
                         Write-Host -NoNewline "Please provide a target "
                         Write-Host -NoNewline "Shared Mailbox " -ForegroundColor Yellow
                         $EmailBoxName = (Read-Host "Name").Trim()
                     }
                     3 {
-                        # Write-Host "Selection 3"
                         Write-Host -NoNewline "Please provide a target "
                         Write-Host -NoNewline "Room Mailbox " -ForegroundColor Yellow
                         $EmailBoxName = (Read-Host "Name").Trim()
                     }
                     4 {
-                        # Write-Host "Selection 4"
                         Write-Host -NoNewline "Please provide a target "
                         Write-Host -NoNewline "Equipment Mailbox " -ForegroundColor Yellow
                         $EmailBoxName = (Read-Host "Name").Trim()
@@ -274,95 +269,59 @@ function Select-Mailbox {
                     }
                 }
 
-                <#
-                if ($OperationChoice -eq 1) {
-                    
-                } 
-                elseif ($OperationChoice -eq 2) {
-
-                }
-                elseif ($OperationChoice -eq 3) {
-
-                }
-                else {
-
-                }
-                #>
                 if (!$EmailBoxName) { Write-Warning "Null value found. Please provide the emailbox name" }
             } while (!$EmailBoxName)
             
-
             if ($OperationChoice -ne 0) {
                 Write-Host "Searching the mailbox..." -ForegroundColor DarkGreen
             }
             
-
             # New Search Process - now search On-Premises exch & O365 mailbox
             $MailBoxList = @()
-
-            <#
-            Switch ($OperationChoice) {
-                "1" {}
-                "2" {}
-                "3" {}
-                "4" {}
-                default {}
-            }
-            #>
-
             if ($OperationChoice -eq 1) {
                 try {
+                    # "Searching On-premises"
                     $MailBoxList += Get-Mailbox "*$EmailBoxName*" -RecipientTypeDetails UserMailbox -ErrorAction Stop
                 } catch { <# do nothing #> }
 
+                # This Filter part was tricky one
                 [string]$Filter = "(RecipientTypeDetails -eq `"UserMailbox`" -and name -like `"*$EmailBoxName*`")"
                 try {
+                    # "Searching Cloud"
                     $MailBoxList += Get-O365Mailbox -Filter $Filter -ErrorAction Stop
                 } catch {
                     # just null
                     # Write-Host "No usermail found in O365"
                 }
             } else {
-                # $MailBoxList = @()
-
                 if ($EmailBoxName -match "@") {
                     try {
                         $MailBoxList += Get-Mailbox $EmailBoxName -RecipientTypeDetails SharedMailbox -ErrorAction Stop
                     } catch {
-                        # Just Null
-                        Write-Host "Test1"
+                        # Nothing to do
+                        # Write-Host "Test1"
                     }
                     try {
                         $MailBoxList += Get-O365Mailbox $EmailBoxName -RecipientTypeDetails SharedMailbox -ErrorAction Stop
                     } catch {
-                        # just null
-                        Write-Host "Test2"
+                        # Nothing to do
+                        # Write-Host "Test2"
                     }
                 } else {
                     try {
                         $MailBoxList += Get-Mailbox -Filter "(DisplayName -like '*$EmailBoxName*') -or (Name -like '*$EmailBoxName*') -or (Alias -like '*$EmailBoxName*') -or (EmailAddresses -like '*$EmailBoxName*')" -RecipientTypeDetails SharedMailbox -ErrorAction Stop
                     } catch {
-                        # Just Null
-                        Write-Host "Test3"
+                        # Nothing to do
+                        # Write-Host "Test3"
                     }
                     try {
                         $MailBoxList += Get-O365Mailbox -Filter "(DisplayName -like '*$EmailBoxName*') -or (Name -like '*$EmailBoxName*') -or (Alias -like '*$EmailBoxName*') -or (EmailAddresses -like '*$EmailBoxName*')" -RecipientTypeDetails SharedMailbox -ErrorAction Stop
                     } catch {
-                        # just null
-                        Write-Host "Test4"
+                        # Nothing to do
+                        # Write-Host "Test4"
                     }
                 }
             }
-            
-            # this if-Statement block may not be necessary - Duplicated with the next If-Statement
-            <#
-            if ($MailBoxList) {
-                $IsEmailBoxExist = $true
-            } else {
-                Write-Host -NoNewline "No match found! " -ForegroundColor Red
-                $IsEmailBoxExist = $false
-            }
-            #>
             
             if ($MailBoxList) {
                 if ($MailBoxList.count -gt 1) {
@@ -399,11 +358,8 @@ function Select-Mailbox {
                                     $TryAgain = $true
                                 } else {
                                     # Write-Host "Too small number- which is ok"
-                                    # $EmailBoxAlias = $MailBoxList[$MailboxNumber-1].Alias
                                     $EmailBoxSelected = $MailBoxList[$MailboxNumber-1]
                                     $EmailBoxAddress = $MailBoxList[$MailboxNumber-1].PrimarySmtpAddress
-                                    # Write-Host "$EmailBoxSelected"
-                                    # Write-Host ($EmailBoxSelected).OriginatingServer
                                     try {                                            
                                         if (($EmailBoxSelected).OriginatingServer -imatch "outlook.com") {
                                             Get-O365Mailbox $EmailBoxAddress -ErrorAction Stop | Select-Object Name,Alias,DisplayName,PrimarySmtpAddress | Format-Table -AutoSize | Out-Host
@@ -418,11 +374,9 @@ function Select-Mailbox {
                                 }
                             }
                         } elseif ($MailboxNumber -imatch "[a-z]|[A-Z]") {
-                            # Write-Host 'Alphabet'
                             if ($MailboxNumber -ieq 'x') {
                                 # go to exit
                                 Write-Host "Exiting..." -ForegroundColor DarkGreen
-                                # Write-Host "Search Email again" -ForegroundColor DarkGreen
                                 $IsEmailBoxExist = $false # "No"
                                 # $TryAgain = $false
                                 $EmailBoxName = $null
@@ -440,11 +394,14 @@ function Select-Mailbox {
                 } 
                 else {
                     Write-Host "1 match found" -ForegroundColor Green
-                    $EmailBoxName = $MailBoxList[0]
+                    $EmailBoxName = $MailBoxList[0].Name
                     $EmailBoxAddress = $MailBoxList[0].PrimarySmtpAddress
-                    # $EmailBoxAlias = $MailBoxList[0].Alias
-                    $EmailBoxSelected = $MailBoxList[$MailboxNumber-1]
-                    Get-Mailbox "$EmailBoxAddress" -ErrorAction Stop | Select-Object Name,Alias,DisplayName,PrimarySmtpAddress,ServerName | Format-Table -AutoSize | Out-Host
+                    $EmailBoxSelected = $MailBoxList[0]
+                    if ($MailBoxList.OriginatingServer -imatch "outlook.com") {
+                        Get-O365Mailbox $EmailBoxAddress -ErrorAction Stop | Select-Object Name,Alias,DisplayName,PrimarySmtpAddress | Format-Table -AutoSize | Out-Host
+                    } else {
+                        Get-Mailbox $EmailBoxAddress -ErrorAction Stop | Select-Object Name,Alias,DisplayName,PrimarySmtpAddress | Format-Table -AutoSize | Out-Host
+                    }
                 }
             } 
             else {
@@ -455,18 +412,14 @@ function Select-Mailbox {
         }
         else {
             try {
-                # Write-Host "Test1"
                 $EmailBoxSelected = Get-Mailbox $EmailBoxName -ErrorAction Stop
                 $IsEmailBoxExist = $true
             } catch {
-                # Write-Host "Test2"
                 $EmailBoxSelected = Get-O365Mailbox $EmailBoxName -ErrorAction Stop
                 $IsEmailBoxExist = $true
             } finally {
                 $Error
             }
-            # $EmailBoxAddress = $EmailBoxName
-            # $IsEmailBoxExist = $true
         }
     } while ($IsEmailBoxExist -eq $false)
 
