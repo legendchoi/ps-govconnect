@@ -18,18 +18,15 @@ Write-Host "                        Account Creation PowerScript                
 Write-Host "                            Hello, $Handsome"
 Write-Host "====================================================================================="
 
+# A new user's info
 if (!$UID) {
     $userid = Read-Host "Please provide the new user's name or ID"
     $UID = Select-User $userid
     $yourDisplayName = (Get-ADUser -Identity $UID -Properties DisplayName).DisplayName
 }
-
 Get-LDAPUserDetail -Identity $UID -IsManager $false
 
-
-
-
-
+# Check the manager of the new user - This part may not work.
 if ($yourADManager -ne $null) {
     $ConfirmManager = Read-Host "Is the manager correct? (y/n)"
     $yourADManagerDisplayName = $yourADManagerFullName
@@ -37,8 +34,7 @@ if ($yourADManager -ne $null) {
     $ConfirmManager ='n'
 }
 
-
-
+# A manger's info
 $managerid = Read-host "`nPlease provide the manager name or ID"
 if ($ConfirmManager -ine 'y') {
     $yourADManager = Select-User $managerid
@@ -46,8 +42,7 @@ if ($ConfirmManager -ine 'y') {
 }
 Get-LDAPUserDetail -Identity $yourADManager -IsManager $true
 
-
-
+# Summary & Menu
 Write-Host "`n`n"
 Write-Host "====================================================================================="
 Write-Host "Reference User   : $yourADManagerDisplayName"

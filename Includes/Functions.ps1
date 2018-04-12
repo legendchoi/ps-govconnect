@@ -17,7 +17,6 @@ function Get-ConnectExch {
 
 Function Connect-Exch {
     [CmdletBinding()]
-	# Param ([parameter()][string]$ConnectionUri = "http://dc1wexcamb01.govnet.nsw.gov.au/PowerShell/")
     param ([Parameter()][string]$ConnectionUri = "http://Dc1wexcamb03.govnet.nsw.gov.au/PowerShell/")
     if (!(Get-PSSession | Where-Object { $_.ConfigurationName -eq "Microsoft.Exchange" })) { 
         Write-Host "Connecting Exchange Server... `nPlease wait..." -ForegroundColor DarkGreen
@@ -103,31 +102,39 @@ function Get-LDAPConnection {
         $UserPW = $myPW
     )
     $UserDN = "cn=$UserCN,ou=active,o=vault"
-    $c = New-Object System.DirectoryServices.Protocols.LdapConnection $ip -ea Stop
-    $c.SessionOptions.SecureSocketLayer = $false;
-    $c.SessionOptions.ProtocolVersion = 3
-    $c.AuthType = [System.DirectoryServices.Protocols.AuthType]::Basic
-    $credentials = new-object "System.Net.NetworkCredential" -ArgumentList $userdn,$userpw
-    $c.Bind($credentials)
-    return $c
+    $connection = New-Object System.DirectoryServices.Protocols.LdapConnection($ip) -ea Stop
+    $connection.SessionOptions.SecureSocketLayer = $false;
+    $connection.SessionOptions.ProtocolVersion = 3
+    $connection.AuthType = [System.DirectoryServices.Protocols.AuthType]::Basic
+    $credentials = New-Object System.Net.NetworkCredential -ArgumentList $userdn,$userpw
+    $connection.Bind($credentials)
+
+    return $connection
 }
 
 function Add-LDAPUserProperty {
     [CmdletBinding()]
     param (
+        $UserID,
         $UserCN,  # = cn=TSR6602,ou=active,o=vault"
-        $ldapattrname,  # = "mUSRaccountForgotPasswordEnabled",
-        $ldapattrvalue, # = "TRUE"
-        $ldapconnection
+        $LdapAttrName,  # = "mUSRaccountForgotPasswordEnabled",
+        $LdapAttrValue, # = "TRUE"
+        $LdapConnection
     )
+    if ($UserID) {
+        $UserCN = (Get-ADUser $UserID -Properties adminDisplayName).adminDisplayName
+    }
     $TargetUserDN = "cn=$UserCN,ou=active,o=vault"
+    # Modification/Alternation
     $a = New-Object "System.DirectoryServices.Protocols.DirectoryAttributeModification"
     $a.Name = $ldapattrname
     $a.Operation = [System.DirectoryServices.Protocols.DirectoryAttributeOperation]::Add
     $a.Add($ldapattrvalue) | Out-Null
+    # Request
     $r = (new-object "System.DirectoryServices.Protocols.ModifyRequest")
     $r.DistinguishedName = "$targetuserdn"
     $r.Modifications.Add($a) | Out-Null
+    # Response
     $re = $ldapconnection.SendRequest($r)
     if ($re.ResultCode -ne [System.directoryServices.Protocols.ResultCode]::Success)
     {
@@ -137,77 +144,148 @@ function Add-LDAPUserProperty {
     } else {
         Write-host "Added: $ldapattrname = $ldapattrvalue" -ForegroundColor Green
     }
+}
+
+function Add-LDAPObjectClass {
+    param($UserId, $ObjectName, $LDAPConnection)
+    # ObjectName should be defined in LDAP Schema (ldif) eg. below
+    # DirXML-ApplicationAttrs, DirXML-EmployeeAux, DirXML-EntitlementRecipient, DirXML-PasswordSyncStatusUser, DirXML-sapObject, DirXML-sapPAux, ,homeInfo, inetOrgPerson, mUSRAAAux, mUSRAux, ndsLoginProperties, nrfIdentity, organizationalPerson, Person, pwmUser, sapAddOnUM, srvprvEntityAux, srvprvUserAux, Top, 
+    
+    $UserCN = (Get-ADUser $UserID -Properties adminDisplayName).adminDisplayName
+    $TargetUserDN = "cn=$UserCN,ou=active,o=vault"
+    $Request = New-Object System.DirectoryServices.Protocols.AddRequest
+    $Request.DistinguishedName = $TargetUserDN
+    $Request.Attributes.Add((New-Object "System.DirectoryServices.Protocols.DirectoryAttribute" -ArgumentList "objectClass",$ObjectName))
+
+    $Response = $LDAPConnection.SendRequest($Request)
+
+    if ($Response.ResultCode -ne [System.directoryServices.Protocols.ResultCode]::Success) {
+        write-host "Failed!"
+        write-host ("ResultCode: " + $Response.ResultCode)
+        write-host ("Message: " + $Response.ErrorMessage)
+    } 
+}
+
+
+function Add-LDAPUser {
+    param($UserId, $LDAPConnection)
+    # ObjectName should be defined in LDAP Schema (ldif) eg. below
+    # DirXML-ApplicationAttrs, DirXML-EmployeeAux, DirXML-EntitlementRecipient, DirXML-PasswordSyncStatusUser, DirXML-sapObject, DirXML-sapPAux, ,homeInfo, inetOrgPerson, mUSRAAAux, mUSRAux, ndsLoginProperties, nrfIdentity, organizationalPerson, Person, pwmUser, sapAddOnUM, srvprvEntityAux, srvprvUserAux, Top, 
+    $ObjectName = "user"
+    $UserCN = (Get-ADUser $UserID -Properties adminDisplayName).adminDisplayName
+    $TargetUserDN = "cn=$UserCN,ou=active,o=vault"
+    $Request = New-Object System.DirectoryServices.Protocols.AddRequest($TargetUserDN, "inetOrgPerson")
+
+    $Response = $LDAPConnection.SendRequest($Request)
+
+    if ($Response.ResultCode -ne [System.directoryServices.Protocols.ResultCode]::Success) {
+        write-host "Failed!"
+        write-host ("ResultCode: " + $Response.ResultCode)
+        write-host ("Message: " + $Response.ErrorMessage)
+    } 
+}
+function Remove-LDAPObjectClass {
+    param($UserId, $ObjectName, $LDAPConnection)
+    # ObjectName should be defined in LDAP Schema (ldif) eg. below
+    # DirXML-ApplicationAttrs, DirXML-EmployeeAux, DirXML-EntitlementRecipient, DirXML-PasswordSyncStatusUser, DirXML-sapObject, DirXML-sapPAux, ,homeInfo, inetOrgPerson, mUSRAAAux, mUSRAux, ndsLoginProperties, nrfIdentity, organizationalPerson, Person, pwmUser, sapAddOnUM, srvprvEntityAux, srvprvUserAux, Top, 
+    
+    $UserCN = (Get-ADUser $UserID -Properties adminDisplayName).adminDisplayName
+    $TargetUserDN = "cn=$UserCN,ou=active,o=vault"
+    $Request = New-Object System.DirectoryServices.Protocols.DeleteRequest
+    $Request.DistinguishedName = $TargetUserDN
+    $Request.Attributes.Add((New-Object "System.DirectoryServices.Protocols.DirectoryAttribute" -ArgumentList "objectClass",$ObjectName))
+
+    $Response = $LDAPConnection.SendRequest($Request)
+
+    if ($Response.ResultCode -ne [System.directoryServices.Protocols.ResultCode]::Success) {
+        write-host "Failed!"
+        write-host ("ResultCode: " + $Response.ResultCode)
+        write-host ("Message: " + $Response.ErrorMessage)
+    } 
+
 }
 
 # In Progress
 function Remove-LDAPUserProperty {
-    [CmdletBinding()]
-    param (
-        $UserCN,  # = cn=TSR6602,ou=active,o=vault"
-        $ldapattrname,  # = "mUSRaccountForgotPasswordEnabled",
-        $ldapattrvalue, # = "TRUE"
-        $ldapconnection
-    )
+    param ($UserID, $LdapAttrName, $LdapConnection)
+
+    $UserCN = (Get-ADUser $UserID -Properties adminDisplayName).adminDisplayName
     $TargetUserDN = "cn=$UserCN,ou=active,o=vault"
-    # $a = New-Object System.DirectoryServices.Protocols.DirectoryAttributeModification
-    $a = New-Object System.DirectoryServices.Protocols.DirectoryAttributeModification
-    $a.Name = $ldapattrname
-    $a.Operation = [System.DirectoryServices.Protocols.DirectoryAttributeOperation]::Delete
-    $a.($ldapattrvalue) | Out-Null
-    $r = (new-object "System.DirectoryServices.Protocols.ModifyRequest")
-    $r.DistinguishedName = "$targetuserdn"
-    $r.Modifications.Add($a) | Out-Null
-    $re = $ldapconnection.SendRequest($r)
-    if ($re.ResultCode -ne [System.directoryServices.Protocols.ResultCode]::Success)
-    {
-        write-host "Failed!" -ForegroundColor Red
-        # write-host ("ResultCode: " + $re.ResultCode)
-        # write-host ("Message: " + $re.ErrorMessage)
+
+    $mod = New-Object System.DirectoryServices.Protocols.DirectoryAttributeModification
+    $mod.Name = $LdapAttrName
+    $mod.Operation = [System.DirectoryServices.Protocols.DirectoryAttributeOperation]::Delete
+
+    $modRequest = New-Object System.DirectoryServices.Protocols.ModifyRequest # (dn, DirectoryAttributeOperation.Delete, attributeName)
+    $modRequest.DistinguishedName = "$targetuserdn"
+    try {
+        $modRequest.Modifications.Add($mod) | Out-Null
+    } catch {
+        $Error
+    }
+    $modResponse = $ldapConnection.SendRequest($modRequest)
+
+    if ($modResponse.ResultCode -ne [System.directoryServices.Protocols.ResultCode]::Success) {
+        Write-Host "Failed!" -ForegroundColor Red
+        # Write-Host ("ResultCode: " + $modResponse.ResultCode)
+        # Write-Host ("Message: " + $modResponse.ErrorMessage)
     } else {
-        Write-host "Added: $ldapattrname = $ldapattrvalue" -ForegroundColor Green
+        Write-Host "Deleted: $LdapAttrName" -ForegroundColor Green
     }
 }
 
-function Get-LDAPUserProperty {
-    param(
-        $UserId,
-        $ldapattrname,
-        $ldapconnection
-    )
+function Remove-LDAPObjactClass {
 
+}
+
+function Get-LDAPUserProperty {
+    param($UserId, $LdapAttrName, $LdapConnection)
+    
     $UserCN = (Get-ADUser $UserId).adminDisplayName
     $TargetUserDN = "cn=$UserCN,ou=active,o=vault"
-    # $ldapattrname = "costCenter"
     $SearchTargetOU = "ou=active,o=vault"
     $SearchFilter = "(uid=$UserID)"
     $SearchScope = [System.DirectoryServices.Protocols.SearchScope]::Subtree
     $SearchAttrList = $null
-    # $BaseDN = 
 
     # Request
     $Request = New-Object System.DirectoryServices.Protocols.SearchRequest -ArgumentList $SearchTargetOU, $SearchFilter, $SearchScope, $SearchAttrList
-    # $Request.DistinguishedName = "$TargetUserDN"
-    # $Request.Attributes = "$ldapattrname"
-    # $Request.Attributes = "costCenter"
 
     #Response
     # $Response = New-Object System.DirectoryServices.Protocols.SearchResponse
     # [System.DirectoryServices.Protocols.SearchResponse]$Response = $LDAPConnection.SendRequest($Request)
     $Response = $LDAPConnection.SendRequest($Request)
-    # Write-Host "The result is $Response"
-    
-    # FindAll()
-    # $Response.Entries.Attributes
-    # FindOne()
-    $Response.Entries.Attributes[$LDAPAttrName].GetValues('string')
-
-    <#
-    foreach ($SearchEntries in $Response.Entries) {
-        Write-Host $SearchEntries.DistinguishedName
-    } 
-    #>
-    
+    return $Response.Entries.Attributes[$LDAPAttrName].GetValues('string')
 }
+
+function Search-LDAP {
+    param(
+        $UserID,
+        $LdapConnection
+    )
+
+    $CN = (Get-ADUser $UserID -Properties adminDisplayName).adminDisplayName
+    $SearchTargetOU = "cn=$CN,ou=active,o=vault"
+    $SearchFilter = "(objectClass=*)"
+    $SearchScope = [System.DirectoryServices.Protocols.SearchScope]::Subtree
+    $SearchAttrList = @("givenName", "sn", "description", "cn", "objectClass")
+
+    $Request = New-Object System.DirectoryServices.Protocols.SearchRequest($SearchTargetOU, $SearchFilter, $SearchScope, $SearchAttrList)
+
+    $Response = $LdapConnection.SendRequest($Request)
+    $Response
+    $c = $Response.Entries.Count
+    Write-Host "Entry: $c"
+    foreach ($entry in $Response.Entries) {
+        $Response.Entries.IndexOf($entry)
+        $entry.DistinguishedName
+        foreach ($attr in $SearchAttrList) {
+            $entry.Attributes[$attr].GetValues('string')
+        }
+    }
+}
+
+
 
 function Set-LDAPUserProperty {
     param (
@@ -218,22 +296,19 @@ function Set-LDAPUserProperty {
         $LDAPConnection
     )
 
-    # Write-Host "Hello, $Identity"
-    
     if ($Identity) {
-        $UserCN = Get-LdapEntryProperty -Identity $Identity -Property "cn"
-    } else {
-        # $UserCN = $Identity
+        # $UserCN = Get-LdapEntryProperty -Identity $Identity -Property "cn"
+        $UserCN = (Get-ADUser $UserID -Properties adminDisplayName).adminDisplayName
     }
-    $TargetUserDN = "cn=$UserCN,ou=active,o=vault"
-    # Write-Host "DN is $TargetUserDN"
 
-    $a = New-Object "System.DirectoryServices.Protocols.DirectoryAttributeModification"
+    $TargetUserDN = "cn=$UserCN,ou=active,o=vault"
+
+    $a = New-Object System.DirectoryServices.Protocols.DirectoryAttributeModification
     $a.Name = $ldapattrname
     $a.Operation = [System.DirectoryServices.Protocols.DirectoryAttributeOperation]::Replace
     $a.Add($ldapattrvalue) | Out-Null
 
-    $r = (new-object "System.DirectoryServices.Protocols.ModifyRequest")
+    $r = New-Object System.DirectoryServices.Protocols.ModifyRequest
     $r.DistinguishedName = "$targetuserdn"
     $r.Modifications.Add($a) | Out-Null
     $re = $ldapconnection.SendRequest($r)

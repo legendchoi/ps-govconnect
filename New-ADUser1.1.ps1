@@ -461,10 +461,11 @@ function New-ADUser {
                     $LogonName = $DstEmailAddress.Split('@')[0]
                     $remoteRouting = "$LogonName@nswgov.mail.onmicrosoft.com"
 
-                    # Modify Email address in Identity Portal
+                    # Modifying Email address in Identity Portal
                     Write-Host -NoNewline "Modifying Email in IDM (Mail)   : "
                     $ldapentry = Get-LDAPConnectionEntry
-                    $yourCN = Convert-UIDToCN -uid $DstAccount -ldapconnection $ldapentry
+                    # $yourCN = Convert-UIDToCN -uid $DstAccount -ldapconnection $ldapentry
+                    $yourCN = (Get-ADuser -Identity $DstAccount -Properties adminDisplayName).adminDisplayName
                     $ldapconnection = Get-LDAPConnection
 
                     # Set 'mail' property
@@ -482,17 +483,13 @@ function New-ADUser {
                         Add-LDAPUserProperty -UserCN $yourCN -ldapattrname "mUSRAAsapmail" -ldapattrvalue $DstEmailAddress -ldapconnection $ldapconnection
                     }
 
-                    <#
-                    while () {
-                    }
-                    #>
+                    # Make sure the UserPrincipalName of the user must be set on ALL domain controllers
                     $DCs = (Get-ADGroupMember "Domain Controllers").name
                     foreach ($DC in $DCs) {
-                        Set-ADUser $DstAccount -UserPrincipalName $DstEmailAddress -Server $DC
+                        Set-ADUser $DstAccount -UserPrincipalName $DstEmailAddress -Server $DC -ErrorAction Continue
                     }
 
                     if ($Domain -imatch $O365Domains) {
-                        # Write-Host "Test: This is a Treasury User" -ForegroundColor Yellow
                         # Create Emailbox on O365
                         Enable-RemoteMailbox -Identity $DstEmailAddress -PrimarySmtpAddress $DstEmailAddress -RemoteRoutingAddress $remoteRouting
                         $proxmail = Get-RemoteMailbox -Identity $DstEmailAddress
@@ -505,43 +502,13 @@ function New-ADUser {
                         Set-Mailbox $DstAccount -PrimarySmtpAddress $DstEmailAddress | Out-Null
                     }
 
-                    Write-Host -NoNewline "New Email Address`t`t: "
                     # $PrimarySmtpAddress = Get-Mailbox $DstAccount | Select-Object -ExpandProperty PrimarySmtpAddress
                     $PrimarySmtpAddress = $DstEmailAddress
+                    Write-Host -NoNewline "New Email Address`t`t: "
                     Write-Host $PrimarySmtpAddress -ForegroundColor Green
-
-                    <#
-                    # Modify Email address in Identity Portal
-                    Write-Host -NoNewline "Modifying Email in IDM (Mail)   : "
-                    $ldapentry = Get-LDAPConnectionEntry
-                    $yourCN = Convert-UIDToCN -uid $DstAccount -ldapconnection $ldapentry
-                    $ldapconnection = Get-LDAPConnection
-
-                    # Set 'mail' property
-                    if (Test-PropertyExist -Uid $DstAccount -PropertyName "mail" -ldapconnection $ldapentry) {
-                        Set-LDAPUserProperty -UserCN $yourCN -LdapAttrName "mail" -ldapattrvalue $DstEmailAddress -ldapconnection $ldapconnection
-                    } else {
-                        Add-LDAPUserProperty -UserCN $yourCN -ldapattrname "mail" -ldapattrvalue $DstEmailAddress -ldapconnection $ldapconnection
-                    }
-
-                    Write-Host -NoNewline "Modifying Email in IDM (Sapmail): "
-                    # Set 'mUSRAAsapmail' property 
-                    if (Test-PropertyExist -Uid $DstAccount -PropertyName "mUSRAAsapmail" -ldapconnection $ldapentry) {
-                        Set-LDAPUserProperty -UserCN $yourCN -LdapAttrName "mUSRAAsapmail" -ldapattrvalue $DstEmailAddress -ldapconnection $ldapconnection
-                    } else {
-                        Add-LDAPUserProperty -UserCN $yourCN -ldapattrname "mUSRAAsapmail" -ldapattrvalue $DstEmailAddress -ldapconnection $ldapconnection
-                    }
-                    #>
-
-
-
                 } else {
-                    Write-Host "Error: Filed to create a user Emailbox" -ForegroundColor Red
+                    Write-Host "Error: Failed to create a user Emailbox" -ForegroundColor Red
                 }
-
-
-
-
             } else {
                 Write-Host "Skipped..." -ForegroundColor DarkGreen
             }
@@ -588,8 +555,9 @@ function New-ADUser {
             }
             if ($DepartmentName -ieq 'Infosys') {
                 Write-Host "Note: Letter to be provided for new Infosys users to" -ForegroundColor DarkGreen
+                # Write-Host ""
                 Write-Host "Bijay.Jena@govconnect.nsw.gov.au" -ForegroundColor DarkGreen
-                Write-Host "cc: asif.ali@servicefirst.nsw.gov.au;ranjit.katam@servicefirst.nsw.gov.au;Manoj.Sharma@servicefirst.nsw.gov.au ;Ravi.Phani@govconnect.nsw.gov.au;asiff.muhammed@govconnect.nsw.gov.au" -ForegroundColor DarkGreen
+                Write-Host "cc: ranjit.katam@servicefirst.nsw.gov.au;Manoj.Sharma@servicefirst.nsw.gov.au ;Ravi.Phani@govconnect.nsw.gov.au;asiff.muhammed@govconnect.nsw.gov.au" -ForegroundColor DarkGreen
             }
             # End of the process
             Write-Host "`nUser account creation completed" -ForegroundColor Yellow

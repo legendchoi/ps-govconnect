@@ -27,7 +27,9 @@
         "PURIL"          = "7843017";
         "Saadm"      = "7843057";
         "ZAHEERM"      = "7843034";
-        "ZHANGB"           = "7843031"
+        "ZHANGB"           = "7843031";
+	"SEEDSMAC" = "7843107";
+	"STEWARTT" = "7843037"
     }
     
     return $ExtTable[$UserName].Substring(3,4)
